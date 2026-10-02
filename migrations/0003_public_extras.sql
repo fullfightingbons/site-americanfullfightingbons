@@ -46,7 +46,7 @@ INSERT OR IGNORE INTO site_settings (key, value) VALUES
   ('sponsor_title', 'Devenez notre mécène'),
   ('sponsor_body', 'Que vous soyez adhérent, entreprise ou amateur de la discipline, votre soutien nous aide à proposer de meilleurs équipements et à soutenir nos combattants. Un reçu peut permettre une déduction allant jusqu''à 66% du montant du don, dans les limites prévues par la loi.'),
   ('sponsor_cta_label', 'Faire un don'),
-  ('sponsor_cta_href', 'mailto:fullfightingbons@gmail.com?subject=Demande%20de%20mecenat%20AFFBC'),
+  ('sponsor_cta_href', 'mailto:club@americanfullfightingbons.fr?subject=Demande%20de%20mecenat%20AFFBC'),
   ('contact_intro', 'Pour une question, une séance d''essai ou une demande sur la saison, le club peut être joint directement ici.'),
   ('contact_map_embed_url', 'https://www.google.com/maps?q=Gymnase%20Intercommunal%20des%20Voirons%2C%2074890%20Bons-en-Chablais&z=15&output=embed'),
   ('contact_details_title', 'Coordonnées'),

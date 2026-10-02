@@ -98,7 +98,7 @@ INSERT OR REPLACE INTO site_settings (key, value) VALUES
   ('announcement_badge', 'Saison 2025-2026'),
   ('announcement_title', 'Les inscriptions de la saison sont actuellement closes.'),
   ('announcement_body', 'Une séance d''essai reste possible pour découvrir la discipline et préparer la prochaine ouverture.'),
-  ('contact_email', 'fullfightingbons@gmail.com'),
+  ('contact_email', 'club@americanfullfightingbons.fr'),
   ('contact_phone', '0699958177'),
   ('contact_address', 'Gymnase Intercommunal des Voirons, 74890 Bons-en-Chablais'),
   ('club_story', 'Fondé en 2024, le club transmet les fondamentaux du full contact et de la boxe américaine avec un encadrement fédéral, une pratique exigeante et un vrai esprit collectif.'),

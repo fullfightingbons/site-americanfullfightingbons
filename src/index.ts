@@ -549,7 +549,7 @@ function publicResponseSettings(settings: Record<string, string>, env: Env): Rec
       "Le soutien des adhérents, proches et partenaires aide le club à mieux équiper ses pratiquants et à accompagner ses projets.",
     sponsor_body: settings.sponsor_body || "",
     sponsor_cta_label: settings.sponsor_cta_label || "Faire un don",
-    sponsor_cta_href: settings.sponsor_cta_href || "mailto:fullfightingbons@gmail.com",
+    sponsor_cta_href: settings.sponsor_cta_href || "mailto:club@americanfullfightingbons.fr",
     sponsor_checkout_enabled: settings.sponsor_checkout_enabled || "0",
     sponsor_checkout_org_slug: settings.sponsor_checkout_org_slug || "",
     sponsor_checkout_item_name: settings.sponsor_checkout_item_name || "Don à l'association",
@@ -1087,7 +1087,7 @@ async function handleContact(request: Request, env: Env): Promise<Response> {
 
   const brevoKey = sanitizeText(env.BREVO_API_KEY, 300);
   const fromEmail = sanitizeText(env.CONTACT_FORM_FROM_EMAIL, 180) || "contact@americanfullfightingbons.fr";
-  const toEmail = sanitizeText(env.CONTACT_FORM_TO_EMAIL, 180) || sanitizeText(env.CONTACT_EMAIL, 180) || "fullfightingbons@gmail.com";
+  const toEmail = sanitizeText(env.CONTACT_FORM_TO_EMAIL, 180) || sanitizeText(env.CONTACT_EMAIL, 180) || "club@americanfullfightingbons.fr";
   if (brevoKey) {
     const clubName = sanitizeText(env.SITE_NAME, 120) || "American Full Fighting Bons en Chablais";
     const phoneLine = phone ? `Téléphone : ${phone}\n` : "";

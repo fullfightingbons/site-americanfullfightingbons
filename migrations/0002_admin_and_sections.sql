@@ -30,7 +30,7 @@ INSERT OR IGNORE INTO landing_sections (section_key, title, subtitle, enabled, d
 INSERT OR IGNORE INTO admin_users (id, email, display_name, password_hash, active)
 VALUES (
   'admin-default',
-  'fullfightingbons@gmail.com',
+  'club@americanfullfightingbons.fr',
   'Administration AFFBC',
   'pbkdf2_sha256$100000$d3kv9TSSHiguxsne95Cb9A$Cwsbh1jTP067dfyQRpb5c7OGj54tNb45QrWu8j_fNLY',
   1

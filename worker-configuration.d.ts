@@ -9,11 +9,11 @@ interface __BaseEnv_Env {
 	ENV: "production";
 	SITE_NAME: "American Full Fighting Bons en Chablais";
 	SITE_PUBLIC_URL: "https://americanfullfightingbons.fr";
-	CONTACT_EMAIL: "fullfightingbons@gmail.com";
+	CONTACT_EMAIL: "club@americanfullfightingbons.fr";
 	CONTACT_PHONE: "0699958177";
 	CONTACT_ADDRESS: "15 place Henri Boucher, 74890 Bons-en-Chablais";
 	CONTACT_FORM_FROM_EMAIL: "contact@americanfullfightingbons.fr";
-	CONTACT_FORM_TO_EMAIL: "fullfightingbons@gmail.com";
+	CONTACT_FORM_TO_EMAIL: "club@americanfullfightingbons.fr";
 }
 declare namespace Cloudflare {
 	interface GlobalProps {
