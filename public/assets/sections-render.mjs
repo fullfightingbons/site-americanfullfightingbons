@@ -581,11 +581,11 @@ function starGeometry(count, { tall = false } = {}) {
   // Repère commun au SVG (rayons) et aux nœuds HTML (positions en %).
   // `tall` : étoile plus haute pour des cartes plus longues (équipement).
   const width = 1000;
-  const height = compact ? 520 : tall ? 960 : 900;
+  const height = compact ? 520 : tall ? 1000 : 900;
   const cx = width / 2;
   const cy = height / 2;
   const rx = dense ? 388 : 372;
-  const ry = compact ? 0 : dense ? 345 : 335;
+  const ry = compact ? 0 : tall || dense ? 345 : 335;
 
   const points = starAngles(count).map((angle) => {
     const rad = (angle * Math.PI) / 180;
@@ -682,14 +682,16 @@ function renderEquipmentStarNode(item, position) {
 function renderEquipmentStar(hub, satellites) {
   const shown = satellites.slice(0, STAR_MAX);
   const overflow = satellites.slice(STAR_MAX);
-  const roomy = shown.length <= 6; // assez de place pour des textes plus longs
+  const roomy = shown.length <= 6; // assez de place pour des photos entières et des textes plus longs
+  // Description du sac affichée seulement si aucun satellite n'est juste sous lui (3 ou 5 : bas libre ; 1-2 : orbite à plat).
+  const hubNote = [1, 2, 3, 5].includes(shown.length);
   const geo = starGeometry(shown.length, { tall: roomy });
   const chips = renderStarSatellites(
     overflow.map((item) => ({ label: item.title, image: item.image_url, href: item.cta_href })),
     "Autres équipements",
     false
   );
-  return `<div class="sponsor-star equip-star${roomy ? " is-roomy" : ""}${roomy && !geo.compact ? " is-tall" : ""}${geo.dense ? " is-dense" : ""}${geo.compact ? " is-compact" : ""}" role="group" aria-label="Équipement recommandé">
+  return `<div class="sponsor-star equip-star${roomy ? " is-roomy" : ""}${hubNote ? " has-hub-note" : ""}${roomy && !geo.compact ? " is-tall" : ""}${geo.dense ? " is-dense" : ""}${geo.compact ? " is-compact" : ""}" role="group" aria-label="Équipement recommandé">
         ${renderStarLinks(geo)}${renderEquipmentHub(hub)}
         <ul class="sponsor-star-nodes">${shown.map((item, index) => renderEquipmentStarNode(item, geo.points[index])).join("")}
         </ul>

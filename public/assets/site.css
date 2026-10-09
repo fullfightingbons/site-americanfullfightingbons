@@ -1564,15 +1564,11 @@ a.sponsor-chip:hover{border-color:var(--gold);color:var(--red-dark)}
   pointer-events:none;
 }
 .equip-hub-medal img{
-  width:100%;
-  height:100%;
-  border-radius:50%;
-  object-fit:cover;
-}
-.equip-hub-medal img.is-contain{
+  /* Photo entière : cadre à 70 % du médaillon pour que même les coins d'une image carrée restent dans le cercle. */
+  width:70%;
+  height:70%;
+  border-radius:10px;
   object-fit:contain;
-  padding:12%;
-  background:#fffefb;
 }
 .equip-hub-icon{
   width:52%;
@@ -1616,12 +1612,19 @@ a.sponsor-chip:hover{border-color:var(--gold);color:var(--red-dark)}
   font-size:.88rem;
   color:var(--red-dark);
 }
-.equip-star.is-tall{aspect-ratio:1000/960}
-.equip-star:not(.is-dense) .equip-node .card-media{max-height:72px}
-.equip-node .card-media.is-cover{padding:0;border:0}
+.equip-star.is-tall{aspect-ratio:1000/1000}
+/* Photos jamais rognées : cadre fixe, image entière (contain), quel que soit son format ou le réglage « cover ». */
+.equip-node .card-media{
+  object-fit:contain;
+  padding:.25rem;
+  border:0;
+  background:var(--cream-deep);
+}
+.equip-star.is-roomy .equip-node .card-media{aspect-ratio:3/2;max-height:none}
+.equip-star:not(.is-roomy):not(.is-dense) .equip-node .card-media{max-height:72px}
 .equip-star.is-roomy .sponsor-node-desc{-webkit-line-clamp:3}
-/* Au-delà de 6 satellites, le bas de l'orbite se rapproche du centre : légende réduite. */
-.equip-star:not(.is-roomy) .equip-hub-caption p{display:none}
+/* Légende du sac : la description n'est gardée que si le bas de l'orbite est libre. */
+.equip-star:not(.has-hub-note) .equip-hub-caption p{display:none}
 
 @media (max-width:1020px){
   .equip-hub{
@@ -1641,8 +1644,11 @@ a.sponsor-chip:hover{border-color:var(--gold);color:var(--red-dark)}
     width:min(88vw,300px);
   }
   .equip-star,.equip-star.is-tall{aspect-ratio:auto}
-  .equip-star:not(.is-roomy) .equip-hub-caption p{display:-webkit-box}
+  .equip-star:not(.has-hub-note) .equip-hub-caption p{display:-webkit-box}
   .equip-star.is-roomy .sponsor-node-desc{-webkit-line-clamp:4}
+  .equip-star.is-roomy .equip-node .card-media,
+  .equip-star:not(.is-roomy):not(.is-dense) .equip-node .card-media,
+  .equip-star.is-dense .equip-node .card-media{aspect-ratio:3/2;max-height:none}
 }
 @media (prefers-reduced-motion:reduce){
   .equip-hub-medal::before{animation:none}

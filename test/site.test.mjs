@@ -408,11 +408,18 @@ describe('section équipement (étoile, sac de sport au centre)', () => {
 
   it('adapte la hauteur et la densité au nombre de satellites', () => {
     const many = (n) => [bag, ...Array.from({ length: n }, (_, i) => item(`e${i}`, `Équipement ${i}`))];
-    expect(render(many(5))).toContain('is-roomy is-tall');
-    expect(render(many(5))).toContain('viewBox="0 0 1000 960"');
+    expect(render(many(5))).toContain('is-roomy');
+    expect(render(many(5))).toContain('is-tall');
+    expect(render(many(5))).toContain('viewBox="0 0 1000 1000"');
     expect(render(many(8))).not.toContain('is-roomy');
     expect(render(many(9))).toContain('is-dense');
     expect(render(many(1))).toContain('is-compact');
+  });
+
+  it('garde la description du sac seulement si le bas de l\'orbite est libre', () => {
+    const many = (n) => [bag, ...Array.from({ length: n }, (_, i) => item(`e${i}`, `Équipement ${i}`))];
+    for (const n of [1, 2, 3, 5]) expect(render(many(n))).toContain('has-hub-note');
+    for (const n of [4, 6, 8]) expect(render(many(n))).not.toContain('has-hub-note');
   });
 
   it('range les équipements au-delà de 10 sous l\'étoile, sans ouvrir de nouvel onglet', () => {
