@@ -549,6 +549,63 @@ function renderFaqSection(data, section) {
   `;
 }
 
+// ── Avis : mur en colonnes (masonry) ───────────────────────────────────
+// Cartes légères et de hauteur libre, réparties en colonnes équilibrées : le
+// rythme s'adapte à la longueur de chaque avis au lieu d'une grille uniforme
+// de gros blocs. 1 avis → 1 colonne centrée ; 2 ou 4 → 2 colonnes ; sinon 3.
+// La répartition est calculée ici (SSR) : chaque avis rejoint la colonne la
+// moins haute selon une estimation de sa hauteur (longueur du texte), ce qui
+// garantit des colonnes équilibrées sans dépendre du moteur de colonnes CSS.
+// Sur tablette/mobile les colonnes disparaissent (display:contents) et l'ordre
+// d'origine est rétabli via la variable --i.
+function testimonialColumns(count) {
+  if (count <= 1) return 1;
+  if (count === 2 || count === 4) return 2;
+  return 3;
+}
+
+function renderTestimonialCard(item, index) {
+  const name = String(item.author_name || "");
+  const isGoogle = item.source === "google";
+  const rating = Math.max(0, Math.min(5, Math.round(Number(item.rating) || 0)));
+  const avatar = item.image_url
+    ? `<img class="testimonial-photo ${imageFitClass(item.image_fit)}" src="${escapeHtml(item.image_url)}"${cfImageSrcset(item.image_url, [100,200]) ? ` srcset="${escapeHtml(cfImageSrcset(item.image_url, [100,200]))}" sizes="48px"` : ""} alt="${escapeHtml(name)}" width="48" height="48" loading="lazy" decoding="async" referrerpolicy="no-referrer">`
+    : `<span class="testimonial-photo testimonial-photo--empty" aria-hidden="true">${escapeHtml(name.trim().charAt(0).toUpperCase() || "★")}</span>`;
+  const stars = isGoogle && rating
+    ? `<span class="testimonial-stars" role="img" aria-label="Note : ${rating} sur 5">${"★".repeat(rating)}</span>`
+    : "";
+  const subline = isGoogle
+    ? [stars, "Google", item.relative_time ? escapeHtml(item.relative_time) : ""].filter(Boolean)
+    : [item.role_label ? escapeHtml(item.role_label) : ""].filter(Boolean);
+  return `
+          <article class="testimonial-card${textAlignClass(item.text_align)}" style="--i:${index}">
+            <div class="testimonial-head">
+              ${avatar}
+              <div class="testimonial-id">
+                <h3>${escapeHtml(name)}</h3>
+                ${subline.length ? `<div class="testimonial-meta">${subline.join('<span class="testimonial-dot" aria-hidden="true"> · </span>')}</div>` : ""}
+              </div>
+            </div>
+            <blockquote class="quote">${escapeHtml(item.quote || "")}</blockquote>
+          </article>
+        `;
+}
+
+function renderTestimonialColumns(items) {
+  const count = testimonialColumns(items.length);
+  const charsPerLine = count >= 3 ? 36 : 52;
+  const columns = Array.from({ length: count }, () => ({ height: 0, html: [] }));
+  items.forEach((item, index) => {
+    const lines = Math.max(1, Math.ceil(String(item.quote || "").length / charsPerLine));
+    const shortest = columns.reduce((best, column) => (column.height < best.height ? column : best), columns[0]);
+    shortest.height += 150 + lines * 26;
+    shortest.html.push(renderTestimonialCard(item, index));
+  });
+  return `<div class="testimonials-grid testimonials-grid--${count}">${columns
+    .map((column) => `<div class="testimonials-col">${column.html.join("")}</div>`)
+    .join("")}</div>`;
+}
+
 function renderTestimonialsSection(data, section) {
   const items = (data.testimonials || [])
     .filter((item) => Number(item.enabled ?? 1) === 1)
@@ -562,17 +619,7 @@ function renderTestimonialsSection(data, section) {
         </div>
         <p>${escapeHtml(data.testimonialsIntro || "Quelques retours de pratiquants et proches du club.")}</p>
       </div>
-      <div class="testimonials-grid">
-        ${items.map((item) => `
-          <article class="testimonial-card${textAlignClass(item.text_align)}">
-            ${item.image_url ? `<img class="testimonial-photo ${imageFitClass(item.image_fit)}" src="${escapeHtml(item.image_url)}"${cfImageSrcset(item.image_url, [150,300]) ? ` srcset="${escapeHtml(cfImageSrcset(item.image_url, [150,300]))}" sizes="150px"` : ""} alt="${escapeHtml(item.author_name)}" loading="lazy" decoding="async">` : ""}
-            <p class="quote">"${escapeHtml(item.quote || "")}"</p>
-            <h3>${escapeHtml(item.author_name)}</h3>
-            <div class="meta">${escapeHtml(item.role_label || "")}</div>
-            ${item.source === "google" && item.relative_time ? `<div class="testimonial-source">${escapeHtml(item.relative_time)}</div>` : ""}
-          </article>
-        `).join("")}
-      </div>
+      ${renderTestimonialColumns(items)}
       ${data.googleReviews?.source === "google" && data.googleReviews?.ctaHref ? `
         <div class="section-actions">
           <a class="btn btn-dark" href="${escapeHtml(safeHref(data.googleReviews.ctaHref))}" target="_blank" rel="noreferrer">${escapeHtml(data.googleReviews.ctaLabel || "Voir les avis Google")}</a>

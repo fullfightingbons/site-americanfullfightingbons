@@ -1747,3 +1747,109 @@ a.sponsor-chip:hover{border-color:var(--gold);color:var(--red-dark)}
   .team-pyramid-tier .team-card,
   .team-pyramid-tier--1 .team-card{flex-basis:100%;max-width:none}
 }
+
+
+/* ── Avis : mur en colonnes ─────────────────────────────────────────────
+   Cartes légères de hauteur libre, réparties en colonnes équilibrées par le
+   rendu (sections-render.mjs) : moins massif qu'une grille de gros blocs. */
+.testimonials-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:16px;
+  align-items:start;
+  margin-left:auto;
+  margin-right:auto;
+}
+.testimonials-grid--1{grid-template-columns:minmax(0,1fr);max-width:560px}
+.testimonials-grid--2{grid-template-columns:repeat(2,minmax(0,1fr));max-width:900px}
+.testimonials-col{
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+  min-width:0;
+}
+.testimonial-card{
+  margin:0;
+  padding:1.05rem 1.2rem 1.2rem;
+  border-radius:22px;
+  box-shadow:0 8px 22px rgba(7,17,29,.06);
+}
+.testimonial-head{
+  display:flex;
+  align-items:center;
+  gap:.75rem;
+  margin-bottom:.8rem;
+}
+.testimonial-card .testimonial-photo{
+  flex:0 0 auto;
+  width:44px;
+  height:44px;
+  margin:0;
+  border-radius:50%;
+}
+.testimonial-photo--empty{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-family:var(--font-card-title);
+  font-weight:800;
+  font-size:1.05rem;
+  color:var(--red-dark);
+  background:rgba(214,172,84,.22);
+}
+.testimonial-id{min-width:0}
+.testimonial-card .testimonial-id h3{
+  margin:0;
+  font-size:1rem;
+  line-height:1.2;
+}
+.testimonial-meta{
+  margin-top:.15rem;
+  font-size:.78rem;
+  line-height:1.3;
+  color:var(--muted);
+}
+.testimonial-stars{
+  color:var(--gold);
+  letter-spacing:.06em;
+}
+.testimonial-card .quote{
+  margin:0;
+  font-size:.96rem;
+  line-height:1.62;
+  color:var(--ink);
+  overflow-wrap:anywhere;
+}
+.testimonial-card .quote::before{
+  content:"\201C";
+  display:block;
+  height:.55em;
+  margin-bottom:.25rem;
+  font-family:Georgia,"Times New Roman",serif;
+  font-size:2.8rem;
+  line-height:.9;
+  color:rgba(159,36,19,.3);
+}
+.testimonial-card.text-center .testimonial-head{justify-content:center;text-align:left}
+.testimonial-card.text-right .testimonial-head{flex-direction:row-reverse;text-align:right}
+/* Tablette : 2 colonnes ; la 3e colonne serveur passe dessous, sur 2 colonnes. */
+@media (max-width:900px){
+  .testimonials-grid,
+  .testimonials-grid--2{grid-template-columns:repeat(2,minmax(0,1fr));max-width:none}
+  .testimonials-grid--1{grid-template-columns:minmax(0,1fr);max-width:560px}
+  .testimonials-grid--3 .testimonials-col:nth-child(3){
+    grid-column:1 / -1;
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    align-items:start;
+  }
+}
+/* Mobile : une seule colonne, ordre d'origine rétabli (les colonnes serveur disparaissent). */
+@media (max-width:600px){
+  .testimonials-grid,
+  .testimonials-grid--2{grid-template-columns:minmax(0,1fr)}
+  .testimonials-col,
+  .testimonials-grid--3 .testimonials-col:nth-child(3){display:contents}
+  .testimonial-card{order:var(--i,0)}
+  .testimonials-grid{display:flex;flex-direction:column;gap:14px}
+}

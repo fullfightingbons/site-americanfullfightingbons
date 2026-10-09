@@ -500,3 +500,67 @@ describe('section équipe (pyramide)', () => {
     expect(html).toContain('&lt;b&gt;x&lt;/b&gt;');
   });
 });
+
+describe('section avis (mur en colonnes)', () => {
+  const section = { section_key: 'testimonials', enabled: 1, title: 'Avis', subtitle: 'Ils parlent du club' };
+  const review = (i, extra = {}) => ({
+    id: `r${i}`, author_name: `Auteur ${i}`, role_label: 'Parent', quote: `Avis numéro ${i}`, image_url: '',
+    image_fit: 'cover', enabled: 1, display_order: i, ...extra,
+  });
+  const render = (items, extra = {}) => renderSectionsHtml({ sections: [section], testimonials: items, ...extra });
+  const colCount = (html) => (html.match(/class="testimonials-col"/g) || []).length;
+
+  it('choisit le nombre de colonnes selon le nombre d\'avis', () => {
+    const n = (count) => Array.from({ length: count }, (_, i) => review(i + 1));
+    expect(colCount(render(n(1)))).toBe(1);
+    expect(colCount(render(n(2)))).toBe(2);
+    expect(colCount(render(n(3)))).toBe(3);
+    expect(colCount(render(n(4)))).toBe(2);
+    expect(colCount(render(n(7)))).toBe(3);
+    expect(render(n(4))).toContain('testimonials-grid--2');
+  });
+
+  it('équilibre les colonnes : un long avis reste seul face à plusieurs courts', () => {
+    const long = 'x'.repeat(500);
+    const html = render([review(1, { quote: long }), review(2), review(3), review(4), review(5)]);
+    const cols = html.split('class="testimonials-col"').slice(1);
+    expect(cols).toHaveLength(3);
+    expect(cols[0]).toContain('Auteur 1');
+    expect(cols[0]).not.toContain('Auteur 2');
+    expect(cols.reduce((total, col) => total + (col.match(/class="testimonial-card/g) || []).length, 0)).toBe(5);
+  });
+
+  it('conserve l\'ordre d\'origine via --i et ignore les avis désactivés', () => {
+    const html = render([review(2), review(1), review(3, { enabled: 0 })]);
+    expect(html).toContain('style="--i:0"');
+    expect(html).toContain('style="--i:1"');
+    expect(html).not.toContain('Auteur 3');
+    expect(html.indexOf('Auteur 1')).toBeLessThan(html.indexOf('Auteur 2') + 1000);
+  });
+
+  it('affiche note, source et date pour un avis Google, le rôle pour un avis manuel', () => {
+    const google = render([review(1, { source: 'google', rating: 5, relative_time: 'il y a 2 mois', role_label: 'Google · ★★★★★' })]);
+    expect(google).toContain('aria-label="Note : 5 sur 5"');
+    expect(google).toContain('il y a 2 mois');
+    expect(google).not.toContain('Parent');
+    const manual = render([review(1)]);
+    expect(manual).toContain('Parent');
+    expect(manual).not.toContain('testimonial-stars');
+  });
+
+  it('affiche l\'initiale sans photo, la photo sinon, et échappe le HTML', () => {
+    const html = render([review(1, { author_name: 'élodie' }), review(2, { image_url: '/media/a.jpg', quote: '<script>x</script>' })]);
+    expect(html).toContain('testimonial-photo--empty');
+    expect(html).toContain('>É<');
+    expect(html).toContain('src="/media/a.jpg"');
+    expect(html).toContain('referrerpolicy="no-referrer"');
+    expect(html).not.toContain('<script>x</script>');
+    expect(html).toContain('&lt;script&gt;');
+  });
+
+  it('garde le bouton des avis Google uniquement pour une source Google', () => {
+    const cta = { source: 'google', ctaHref: 'https://g.page/r/xxx', ctaLabel: 'Voir les avis Google' };
+    expect(render([review(1)], { googleReviews: cta })).toContain('Voir les avis Google');
+    expect(render([review(1)], { googleReviews: { ...cta, source: 'manual' } })).not.toContain('Voir les avis Google');
+  });
+});
