@@ -1563,13 +1563,15 @@ a.sponsor-chip:hover{border-color:var(--gold);color:var(--red-dark)}
   animation:sponsor-halo 70s linear infinite;
   pointer-events:none;
 }
-.equip-hub-medal img{
-  /* Photo entière : cadre à 70 % du médaillon pour que même les coins d'une image carrée restent dans le cercle. */
-  width:70%;
-  height:70%;
-  border-radius:10px;
-  object-fit:contain;
+/* Photo du sac : remplit tout le médaillon ; l'image reste entière (marge de 15 %
+   pour que même les coins d'une photo carrée tiennent dans le cercle) sur un fond flouté. */
+.equip-hub-medal .equip-photo{
+  position:absolute;
+  inset:0;
+  border:0;
+  border-radius:50%;
 }
+.equip-hub-medal .equip-photo-img{padding:15%}
 .equip-hub-icon{
   width:52%;
   height:52%;
@@ -1613,15 +1615,33 @@ a.sponsor-chip:hover{border-color:var(--gold);color:var(--red-dark)}
   color:var(--red-dark);
 }
 .equip-star.is-tall{aspect-ratio:1000/1000}
-/* Photos jamais rognées : cadre fixe, image entière (contain), quel que soit son format ou le réglage « cover ». */
-.equip-node .card-media{
-  object-fit:contain;
-  padding:.25rem;
-  border:0;
-  background:var(--cream-deep);
+/* Photos jamais rognées : image entière (contain) dans un cadre clair, quel que soit son
+   format (carré, portrait, paysage, PNG détouré) ou le réglage « cover ». Le fond blanc d'une
+   photo produit est fondu dans le cadre (multiply) pour un rendu détouré. */
+.equip-photo{
+  position:relative;
+  display:block;
+  overflow:hidden;
+  isolation:isolate;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:#fff;
 }
-.equip-star.is-roomy .equip-node .card-media{aspect-ratio:3/2;max-height:none}
-.equip-star:not(.is-roomy):not(.is-dense) .equip-node .card-media{max-height:72px}
+.equip-photo-img{
+  display:block;
+  width:100%;
+  height:100%;
+  padding:5%;
+  object-fit:contain;
+  mix-blend-mode:multiply;
+}
+.equip-node .equip-photo{
+  /* 7 à 10 équipements : orbite serrée, cadre bas et large pour éviter tout chevauchement. */
+  aspect-ratio:5/2;
+  margin-bottom:.5rem;
+}
+/* 6 équipements ou moins : place pour de vraies vignettes. */
+.equip-star.is-roomy .equip-node .equip-photo{aspect-ratio:4/3;margin-bottom:.6rem}
 .equip-star.is-roomy .sponsor-node-desc{-webkit-line-clamp:3}
 /* Légende du sac : la description n'est gardée que si le bas de l'orbite est libre. */
 .equip-star:not(.has-hub-note) .equip-hub-caption p{display:none}
@@ -1646,10 +1666,79 @@ a.sponsor-chip:hover{border-color:var(--gold);color:var(--red-dark)}
   .equip-star,.equip-star.is-tall{aspect-ratio:auto}
   .equip-star:not(.has-hub-note) .equip-hub-caption p{display:-webkit-box}
   .equip-star.is-roomy .sponsor-node-desc{-webkit-line-clamp:4}
-  .equip-star.is-roomy .equip-node .card-media,
-  .equip-star:not(.is-roomy):not(.is-dense) .equip-node .card-media,
-  .equip-star.is-dense .equip-node .card-media{aspect-ratio:3/2;max-height:none}
+  .equip-star .equip-node .equip-photo,
+  .equip-star.is-roomy .equip-node .equip-photo{aspect-ratio:16/10;max-height:240px}
 }
 @media (prefers-reduced-motion:reduce){
   .equip-hub-medal::before{animation:none}
+}
+
+/* ── Équipe : présentation pyramidale ───────────────────────────────────
+   Sommet (présidence) → milieu (bureau) → base (encadrement). Chaque étage
+   est une rangée centrée ; elle s'élargit naturellement vers le bas. */
+.team-pyramid{
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:46px;
+  isolation:isolate;
+}
+.team-pyramid::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:-1;
+  clip-path:polygon(50% 0,100% 100%,0 100%);
+  background:linear-gradient(180deg,rgba(214,172,84,.16),rgba(214,172,84,.03));
+  pointer-events:none;
+}
+.team-pyramid-tier{
+  position:relative;
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:18px;
+  width:100%;
+}
+.team-pyramid-tier + .team-pyramid-tier::before{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:-46px;
+  height:46px;
+  border-left:2px dashed rgba(159,36,19,.38);
+  transform:translateX(-1px);
+}
+.team-pyramid-tier .team-card{
+  flex:0 1 calc((100% - 36px) / 3);
+  max-width:320px;
+  text-align:center;
+}
+.team-pyramid-tier .team-card.text-right{text-align:right}
+.team-pyramid-tier--1 .team-card{
+  flex-basis:340px;
+  max-width:340px;
+  border-color:rgba(214,172,84,.7);
+  background:linear-gradient(180deg,rgba(214,172,84,.18),rgba(255,253,249,.96));
+}
+.team-pyramid-tier--2 .team-card{max-width:300px}
+.team-pyramid-tier--3 .team-card{max-width:270px;padding:1.1rem}
+.team-pyramid-tier .team-photo{
+  width:min(100%,180px);
+  margin-left:auto;
+  margin-right:auto;
+  border-radius:50%;
+}
+.team-pyramid-tier--1 .team-photo{width:min(100%,220px)}
+.team-pyramid-tier--3 .team-photo{width:min(100%,130px)}
+@media (max-width:900px){
+  .team-pyramid-tier .team-card{flex-basis:calc((100% - 18px) / 2)}
+  .team-pyramid-tier--1 .team-card{flex-basis:340px}
+}
+@media (max-width:640px){
+  .team-pyramid{gap:34px}
+  .team-pyramid-tier + .team-pyramid-tier::before{top:-34px;height:34px}
+  .team-pyramid-tier .team-card,
+  .team-pyramid-tier--1 .team-card{flex-basis:100%;max-width:none}
 }

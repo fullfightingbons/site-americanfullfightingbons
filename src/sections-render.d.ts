@@ -20,5 +20,6 @@ declare module "*sections-render.mjs" {
   export function renderHeroStatsHtml(data: Record<string, unknown>): string;
   export function renderSectionsHtml(data: Record<string, unknown>): string;
   export function buildJsonLd(data: Record<string, unknown>, publicUrl: string): Record<string, unknown>;
+  export function teamTier(item: Record<string, unknown>): 1 | 2 | 3;
   export function cfImageSrcset(url: string | undefined | null, widths: number[]): string | null;
 }

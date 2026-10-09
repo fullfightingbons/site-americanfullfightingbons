@@ -406,6 +406,15 @@ describe('section équipement (étoile, sac de sport au centre)', () => {
     expect(html).not.toContain('equip-hub-icon');
   });
 
+  it('affiche chaque photo entière dans un cadre dédié (satellites et sac), sans calque superflu', () => {
+    const html = render([{ ...bag, image_url: '/media/sac.jpg' }, item('g', 'Gants', { image_url: '/media/gants.jpg', image_fit: 'cover' })]);
+    expect(count(html, 'class="equip-photo"')).toBe(2);
+    expect(count(html, 'class="equip-photo-img"')).toBe(2);
+    expect(html).toContain('alt="Gants"');
+    expect(html).not.toContain('equip-photo-bg');
+    expect(render([item('g', 'Gants'), bag])).not.toContain('equip-photo');
+  });
+
   it('adapte la hauteur et la densité au nombre de satellites', () => {
     const many = (n) => [bag, ...Array.from({ length: n }, (_, i) => item(`e${i}`, `Équipement ${i}`))];
     expect(render(many(5))).toContain('is-roomy');
@@ -434,5 +443,55 @@ describe('section équipement (étoile, sac de sport au centre)', () => {
     expect(html).not.toContain('<script>alert(1)');
     expect(html).toContain('&lt;script&gt;');
     expect(html).not.toContain('javascript:alert(1)');
+  });
+});
+
+describe('section équipe (pyramide)', () => {
+  const section = { section_key: 'team', enabled: 1, title: 'Équipe', subtitle: 'Encadrement.' };
+  const member = (name, role, extra = {}) => ({
+    id: name, full_name: name, role_label: role, belt_label: '', bio: '', image_url: '', display_order: 0, ...extra,
+  });
+  const render = (team, extra = {}) => renderSectionsHtml({ sections: [section], team, ...extra });
+  const tierOf = (html, name) => {
+    const at = html.indexOf(`<h3>${name}</h3>`);
+    const before = html.slice(0, at);
+    return Number(before.slice(before.lastIndexOf('data-tier="') + 11, before.lastIndexOf('data-tier="') + 12));
+  };
+  const team = [
+    member('Alice', 'Présidente'),
+    member('Bob', 'Secrétaire'),
+    member('Chloé', 'Trésorière adjointe'),
+    member('David', 'Suppléant'),
+    member('Éric', 'Vice-président'),
+    member('Fanny', 'Assistante fédérale'),
+    member('Gaël', 'Assistant'),
+  ];
+
+  it('range président au sommet, bureau au milieu, assistants à la base', () => {
+    const html = render(team);
+    expect(html).toContain('class="team-pyramid"');
+    expect(tierOf(html, 'Alice')).toBe(1);
+    ['Bob', 'Chloé', 'David', 'Éric'].forEach((name) => expect(tierOf(html, name)).toBe(2));
+    ['Fanny', 'Gaël'].forEach((name) => expect(tierOf(html, name)).toBe(3));
+    expect(html.indexOf('Alice')).toBeLessThan(html.indexOf('Bob'));
+    expect(html.indexOf('Bob')).toBeLessThan(html.indexOf('Fanny'));
+  });
+
+  it('respecte la position forcée depuis l\'admin', () => {
+    const html = render([...team, member('Hugo', 'Assistant', { pyramid_level: 'milieu' })]);
+    expect(tierOf(html, 'Hugo')).toBe(2);
+  });
+
+  it('retombe sur la grille classique si demandé ou si un seul étage existe', () => {
+    expect(render(team, { teamLayout: 'grid' })).toContain('class="team-grid"');
+    const flat = render([member('Fanny', 'Assistante'), member('Gaël', 'Assistant')]);
+    expect(flat).toContain('class="team-grid"');
+    expect(flat).not.toContain('team-pyramid');
+  });
+
+  it('échappe le HTML des champs saisis en admin', () => {
+    const html = render([member('<b>x</b>', 'Président'), member('Gaël', 'Assistant')]);
+    expect(html).not.toContain('<b>x</b>');
+    expect(html).toContain('&lt;b&gt;x&lt;/b&gt;');
   });
 });

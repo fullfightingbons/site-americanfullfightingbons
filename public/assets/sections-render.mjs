@@ -313,7 +313,71 @@ function renderScheduleSection(data, section) {
   `;
 }
 
+// ── Équipe : présentation pyramidale ───────────────────────────────────
+// Niveau 1 (sommet) : président(e). Niveau 2 (milieu) : vice-présidents,
+// secrétaires, trésoriers, suppléants. Niveau 3 (base) : tous les autres
+// (assistants, coachs…). Le niveau se déduit du rôle, sauf si l'admin l'a
+// forcé via `pyramid_level` ('sommet' | 'milieu' | 'base').
+const TEAM_TIER_LABELS = { 1: "Présidence", 2: "Bureau", 3: "Encadrement" };
+
+function normalizeRole(value) {
+  return String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+export function teamTier(item) {
+  const forced = { sommet: 1, milieu: 2, base: 3 }[normalizeRole(item.pyramid_level).trim()];
+  if (forced) return forced;
+  const role = normalizeRole(item.role_label);
+  if (/\bvice\b/.test(role)) return 2;
+  if (/\bpresident/.test(role)) return 1;
+  if (/secretaire|tresorier|suppleant/.test(role)) return 2;
+  return 3;
+}
+
+function renderTeamCard(item, tier) {
+  return `
+          <article class="team-card team-card--tier${tier}${textAlignClass(item.text_align)}">
+            ${item.image_url ? `<img class="team-photo" src="${escapeHtml(item.image_url)}"${cfImageSrcset(item.image_url, [200,400]) ? ` srcset="${escapeHtml(cfImageSrcset(item.image_url, [200,400]))}" sizes="200px"` : ""} alt="${escapeHtml(item.full_name)}" loading="lazy" decoding="async">` : ""}
+            <div class="meta">${escapeHtml(item.role_label)}</div>
+            <h3>${escapeHtml(item.full_name)}</h3>
+            <div class="belt">${escapeHtml(item.belt_label)}</div>
+            <p>${escapeHtml(item.bio)}</p>
+          </article>
+        `;
+}
+
+function renderTeamGrid(members) {
+  return `
+      <div class="team-grid">
+        ${members.map((item) => renderTeamCard(item, teamTier(item))).join("")}
+      </div>`;
+}
+
+function renderTeamPyramid(tiers) {
+  return `
+      <div class="team-pyramid" role="group" aria-label="Organisation de l'équipe">
+        ${[1, 2, 3]
+          .filter((tier) => tiers[tier].length)
+          .map(
+            (tier) => `
+        <div class="team-pyramid-tier team-pyramid-tier--${tier}" data-tier="${tier}" aria-label="${escapeHtml(TEAM_TIER_LABELS[tier])}">
+          ${tiers[tier].map((item) => renderTeamCard(item, tier)).join("")}
+        </div>`
+          )
+          .join("")}
+      </div>`;
+}
+
 function renderTeamSection(data, section) {
+  const members = data.team || [];
+  const tiers = { 1: [], 2: [], 3: [] };
+  members.forEach((item) => tiers[teamTier(item)].push(item));
+  // Pyramide seulement si elle a au moins deux étages ; sinon la grille d'origine.
+  const filledTiers = [1, 2, 3].filter((tier) => tiers[tier].length).length;
+  const usePyramid = data.teamLayout !== "grid" && filledTiers >= 2;
   return `
     <section id="equipe" class="section-shell">
       <div class="section-head">
@@ -323,21 +387,7 @@ function renderTeamSection(data, section) {
         </div>
         <p>${escapeHtml(data.teamIntro || "Un encadrement identifié, présent sur les séances et engagé dans la progression de chaque pratiquant.")}</p>
       </div>
-      <div class="team-grid">
-        ${(data.team || [])
-          .map(
-            (item) => `
-          <article class="team-card${textAlignClass(item.text_align)}">
-            ${item.image_url ? `<img class="team-photo" src="${escapeHtml(item.image_url)}"${cfImageSrcset(item.image_url, [200,400]) ? ` srcset="${escapeHtml(cfImageSrcset(item.image_url, [200,400]))}" sizes="200px"` : ""} alt="${escapeHtml(item.full_name)}" loading="lazy" decoding="async">` : ""}
-            <div class="meta">${escapeHtml(item.role_label)}</div>
-            <h3>${escapeHtml(item.full_name)}</h3>
-            <div class="belt">${escapeHtml(item.belt_label)}</div>
-            <p>${escapeHtml(item.bio)}</p>
-          </article>
-        `
-          )
-          .join("")}
-      </div>
+      ${usePyramid ? renderTeamPyramid(tiers) : renderTeamGrid(members)}
     </section>
   `;
 }
@@ -644,10 +694,19 @@ function renderEquipmentLink(item) {
   return item.cta_href ? `<a class="cta" href="${escapeHtml(safeHref(item.cta_href))}">${escapeHtml(item.cta_label || "Ouvrir")}</a>` : "";
 }
 
+// Photo d'équipement : image entière (jamais rognée, quel que soit son format)
+// dans un cadre clair. Le fond blanc des photos produit est fondu dans le
+// cadre (mix-blend-mode côté CSS), ce qui donne un effet « détouré » sans
+// retoucher les images.
+function renderEquipmentPhoto(item, widths, sizes) {
+  const srcset = cfImageSrcset(item.image_url, widths);
+  const set = srcset ? ` srcset="${escapeHtml(srcset)}" sizes="${sizes}"` : "";
+  return `<div class="equip-photo"><img class="equip-photo-img" src="${escapeHtml(item.image_url)}"${set} alt="${escapeHtml(item.title)}" loading="lazy" decoding="async"></div>`;
+}
+
 function renderEquipmentHub(item) {
-  const srcset = cfImageSrcset(item.image_url, [400, 800]);
   const media = item.image_url
-    ? `<img class="${imageFitClass(item.image_fit, "cover")}" src="${escapeHtml(item.image_url)}"${srcset ? ` srcset="${escapeHtml(srcset)}" sizes="240px"` : ""} alt="${escapeHtml(item.title)}" loading="lazy" decoding="async">`
+    ? renderEquipmentPhoto(item, [300, 600, 900], "(max-width: 1020px) 46vw, 264px")
     : EQUIPMENT_BAG_ICON;
   return `
         <div class="equip-hub">
@@ -661,10 +720,7 @@ function renderEquipmentHub(item) {
 }
 
 function renderEquipmentStarNode(item, position) {
-  const srcset = cfImageSrcset(item.image_url, [200, 400]);
-  const image = item.image_url
-    ? `<img class="card-media ${imageFitClass(item.image_fit, "cover")}" src="${escapeHtml(item.image_url)}"${srcset ? ` srcset="${escapeHtml(srcset)}" sizes="200px"` : ""} alt="${escapeHtml(item.title)}" loading="lazy" decoding="async">`
-    : "";
+  const image = item.image_url ? renderEquipmentPhoto(item, [240, 480, 720], "(max-width: 1020px) 90vw, 212px") : "";
   const description = item.description
     ? `<p class="sponsor-node-desc" title="${escapeHtml(item.description)}">${escapeHtml(item.description)}</p>`
     : "";

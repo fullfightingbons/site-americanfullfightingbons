@@ -165,6 +165,15 @@ const SETTINGS_GROUPS = [
     ],
   },
   {
+    id: "equipe",
+    title: "Équipe",
+    icon: "▲",
+    description: "Présentation de l'équipe : pyramide (président au sommet, bureau au milieu, assistants en bas) ou grille classique. La position de chaque membre se règle dans « Équipe » (champ « Position dans la pyramide »).",
+    fields: [
+      ["team_layout", "Présentation", { type: "select", options: [["pyramid", "Pyramide"], ["grid", "Grille"]] }],
+    ],
+  },
+  {
     id: "sections-intro",
     title: "Intros sections",
     icon: "¶",
@@ -693,7 +702,7 @@ function renderSettingsPanel(groupId) {
       ` : ""}
 
       <div class="vb-fields-grid">
-        ${group.fields.map(([key, label]) => {
+        ${group.fields.map(([key, label, spec]) => {
           const isBoolean = key.endsWith("_enabled");
           const isLong = key.includes("body") || key.includes("story") || key.includes("intro")
             || key.includes("address") || key.includes("note") || key.includes("subtitle");
@@ -702,7 +711,9 @@ function renderSettingsPanel(groupId) {
           return `
             <div class="vb-field ${isLong ? "vb-field--full" : ""}">
               <label class="vb-field-label" for="setting-${escapeHtml(key)}">${escapeHtml(label)}</label>
-              ${isBoolean
+              ${spec?.type === "select"
+                ? `<select id="setting-${escapeHtml(key)}" name="${escapeHtml(key)}" class="vb-field-input">${spec.options.map(([optValue, optLabel]) => `<option value="${escapeHtml(optValue)}"${String(value || spec.options[0][0]) === optValue ? " selected" : ""}>${escapeHtml(optLabel)}</option>`).join("")}</select>`
+                : isBoolean
                 ? `<label class="vb-toggle-row" for="setting-${escapeHtml(key)}">
                     <span>${escapeHtml(label)}</span>
                     <input id="setting-${escapeHtml(key)}" name="${escapeHtml(key)}" class="vb-field-checkbox" type="checkbox" ${checked ? "checked" : ""}>
@@ -839,6 +850,7 @@ const TEAM_FIELDS = [
   { key: "role_label", label: "Rôle" },
   { key: "belt_label", label: "Ceinture" },
   { key: "image_url", label: "Photo", type: "image" },
+  { key: "pyramid_level", label: "Position dans la pyramide", type: "select", options: ["auto", "sommet", "milieu", "base"] },
   { key: "text_align", label: "Alignement texte", type: "select", options: ["left", "center", "right"] },
   { key: "display_order", label: "Ordre", type: "number" },
   { key: "bio", label: "Bio", type: "textarea" },
@@ -1231,6 +1243,7 @@ async function loadAdmin() {
     spotlight_secondary_enabled: state.spotlight?.secondaryEnabled ? "1" : "0",
     schedule_intro: state.scheduleIntro,
     team_intro: state.teamIntro,
+    team_layout: state.teamLayout,
     pricing_intro_synced: state.pricingIntroSynced,
     pricing_intro_local: state.pricingIntroLocal,
     highlights_intro: state.highlightsIntro,
@@ -1341,7 +1354,7 @@ function buildNewItem(kind) {
   const defaults = {
     sections: { id, section_key: "new_section", title: "Nouvelle section", subtitle: "", enabled: 0, display_order: order },
     schedule: { id, day_label: "Jour", time_label: "Horaire", note: "", text_align: "left", display_order: order },
-    team: { id, full_name: "Nouveau membre", role_label: "Rôle", belt_label: "", bio: "", image_url: "", text_align: "left", display_order: order },
+    team: { id, full_name: "Nouveau membre", role_label: "Rôle", belt_label: "", bio: "", image_url: "", text_align: "left", pyramid_level: "auto", display_order: order },
     news: { id, title: "Nouvelle actualité", body: "", date_label: "", badge: "", cta_label: "", cta_href: "", image_url: "", image_fit: "cover", text_align: "left", enabled: 1, display_order: order },
     highlights: { id, title: "Nouvel encart", body: "", badge: "", cta_label: "", cta_href: "", text_align: "left", display_order: order },
     gallery: { id, title: "Nouvelle image", image_url: "", alt_text: "", text_align: "left", display_order: order },

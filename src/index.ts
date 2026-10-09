@@ -122,7 +122,7 @@ const EDITABLE_TABLES = {
   },
   team_members: {
     primaryKey: "id",
-    allowedColumns: ["id", "full_name", "role_label", "belt_label", "bio", "image_url", "text_align", "display_order"],
+    allowedColumns: ["id", "full_name", "role_label", "belt_label", "bio", "image_url", "text_align", "pyramid_level", "display_order"],
   },
   highlights: {
     primaryKey: "id",
@@ -538,6 +538,7 @@ function publicResponseSettings(settings: Record<string, string>, env: Env): Rec
     team_intro:
       settings.team_intro ||
       "Un encadrement identifié, présent sur les séances et engagé dans la progression de chaque pratiquant.",
+    team_layout: settings.team_layout === "grid" ? "grid" : "pyramid",
     pricing_intro_synced: settings.pricing_intro_synced || "Tarifs alignés avec l'inscription en ligne.",
     pricing_intro_local: settings.pricing_intro_local || "Tarifs actuellement affichés par le club.",
     highlights_intro:
@@ -988,6 +989,7 @@ async function getBootstrap(env: Env): Promise<Row> {
     },
     scheduleIntro: settings.schedule_intro,
     teamIntro: settings.team_intro,
+    teamLayout: settings.team_layout,
     pricingIntroSynced: settings.pricing_intro_synced,
     pricingIntroLocal: settings.pricing_intro_local,
     highlightsIntro: settings.highlights_intro,
