@@ -165,6 +165,16 @@ const SETTINGS_GROUPS = [
     ],
   },
   {
+    id: "faq-options",
+    title: "FAQ (affichage)",
+    icon: "?",
+    description: "Présentation de la FAQ : accordéon (titre et contact à gauche, questions à droite) ou cartes. Les questions elles-mêmes se modifient dans « FAQ ».",
+    fields: [
+      ["faq_layout", "Présentation", { type: "select", options: [["accordion", "Accordéon"], ["cards", "Cartes"]] }],
+      ["faq_single_open_enabled", "Une seule question ouverte à la fois (accordéon)"],
+    ],
+  },
+  {
     id: "equipe",
     title: "Équipe",
     icon: "▲",
@@ -1244,6 +1254,8 @@ async function loadAdmin() {
     schedule_intro: state.scheduleIntro,
     team_intro: state.teamIntro,
     team_layout: state.teamLayout,
+    faq_layout: state.faqLayout,
+    faq_single_open_enabled: state.faqSingleOpen ? "1" : "0",
     pricing_intro_synced: state.pricingIntroSynced,
     pricing_intro_local: state.pricingIntroLocal,
     highlights_intro: state.highlightsIntro,

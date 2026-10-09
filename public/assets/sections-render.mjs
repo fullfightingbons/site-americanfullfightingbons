@@ -524,10 +524,30 @@ function renderNewsSection(data, section) {
   `;
 }
 
-function renderFaqSection(data, section) {
-  const items = (data.faq || [])
-    .filter((item) => Number(item.enabled ?? 1) === 1)
-    .sort((a, b) => Number(a.display_order) - Number(b.display_order));
+// ── FAQ : accordéon sobre ──────────────────────────────────────────────
+// Deux colonnes sur ordinateur : titre, intro et bouton « Contactez-nous » à
+// gauche (collés pendant le défilement), accordéon à droite. Une seule question
+// ouverte à la fois (attribut `name` de <details>, sans JavaScript) selon le
+// réglage `faqSingleOpen`. Le réglage `faqLayout: "cards"` rétablit les cartes
+// d'origine. Les questions/réponses sont aussi exposées à Google en JSON-LD
+// (FAQPage), ce qui peut les faire apparaître directement dans les résultats.
+function renderFaqJsonLd(items) {
+  const entries = items
+    .filter((item) => String(item.question || "").trim() && String(item.answer || "").trim())
+    .map((item) => ({
+      "@type": "Question",
+      name: String(item.question).trim(),
+      acceptedAnswer: { "@type": "Answer", text: String(item.answer).trim() },
+    }));
+  if (!entries.length) return "";
+  const json = JSON.stringify({ "@context": "https://schema.org", "@type": "FAQPage", mainEntity: entries })
+    .replace(/</g, "\\u003c")
+    .replace(/\u2028/g, "\\u2028")
+    .replace(/\u2029/g, "\\u2029");
+  return `<script type="application/ld+json">${json}</script>`;
+}
+
+function renderFaqCards(data, section, items) {
   return `
     <section id="faq" class="section-shell">
       <div class="section-head">
@@ -545,6 +565,40 @@ function renderFaqSection(data, section) {
           </details>
         `).join("")}
       </div>
+      ${renderFaqJsonLd(items)}
+    </section>
+  `;
+}
+
+function renderFaqSection(data, section) {
+  const items = (data.faq || [])
+    .filter((item) => Number(item.enabled ?? 1) === 1)
+    .sort((a, b) => Number(a.display_order) - Number(b.display_order));
+  if (data.faqLayout === "cards") return renderFaqCards(data, section, items);
+  const singleOpen = data.faqSingleOpen === undefined ? true : Boolean(data.faqSingleOpen);
+  // Le bouton de contact n'apparaît que si la section Contact est affichée sur la page.
+  const hasContact = (data.sections || []).some(
+    (entry) => entry.section_key === "contact" && Number(entry.enabled ?? 1) === 1
+  );
+  return `
+    <section id="faq" class="section-shell">
+      <div class="faq-layout">
+        <div class="faq-aside">
+          <div class="section-tag">${escapeHtml(section.title || "FAQ")}</div>
+          <h2>${escapeHtml(section.subtitle || "Questions fréquentes")}</h2>
+          <p>${escapeHtml(data.faqIntro || "Les réponses aux questions les plus courantes avant de venir au club.")}</p>
+          ${hasContact ? `<a class="btn btn-dark faq-contact" href="#contact">Une autre question ? Contactez-nous</a>` : ""}
+        </div>
+        <div class="faq-list">
+          ${items.map((item, index) => `
+          <details class="faq-item"${singleOpen ? ' name="faq"' : ""}${index === 0 ? " open" : ""}>
+            <summary><span class="faq-q">${escapeHtml(item.question)}</span><span class="faq-icon" aria-hidden="true"></span></summary>
+            <div class="faq-answer"><p>${escapeHtml(item.answer || "")}</p></div>
+          </details>
+        `).join("")}
+        </div>
+      </div>
+      ${renderFaqJsonLd(items)}
     </section>
   `;
 }

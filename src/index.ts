@@ -539,6 +539,8 @@ function publicResponseSettings(settings: Record<string, string>, env: Env): Rec
       settings.team_intro ||
       "Un encadrement identifié, présent sur les séances et engagé dans la progression de chaque pratiquant.",
     team_layout: settings.team_layout === "grid" ? "grid" : "pyramid",
+    faq_layout: settings.faq_layout === "cards" ? "cards" : "accordion",
+    faq_single_open_enabled: settings.faq_single_open_enabled || "1",
     pricing_intro_synced: settings.pricing_intro_synced || "Tarifs alignés avec l'inscription en ligne.",
     pricing_intro_local: settings.pricing_intro_local || "Tarifs actuellement affichés par le club.",
     highlights_intro:
@@ -976,6 +978,8 @@ async function getBootstrap(env: Env): Promise<Row> {
     sponsorsIntro: settings.sponsors_intro,
     newsIntro: settings.news_intro,
     faqIntro: settings.faq_intro,
+    faqLayout: settings.faq_layout,
+    faqSingleOpen: parseBooleanSetting(settings.faq_single_open_enabled),
     testimonialsIntro: settings.testimonials_intro,
     googleReviews: {
       enabled: parseBooleanSetting(settings.google_reviews_enabled),

@@ -564,3 +564,64 @@ describe('section avis (mur en colonnes)', () => {
     expect(render([review(1)], { googleReviews: { ...cta, source: 'manual' } })).not.toContain('Voir les avis Google');
   });
 });
+
+describe('section FAQ (accordéon)', () => {
+  const section = { section_key: 'faq', enabled: 1, title: 'FAQ', subtitle: 'Questions fréquentes' };
+  const contact = { section_key: 'contact', enabled: 1, title: 'Contact', subtitle: 'Contact' };
+  const q = (i, extra = {}) => ({ id: `q${i}`, question: `Question ${i} ?`, answer: `Réponse ${i}.`, enabled: 1, display_order: i, ...extra });
+  const render = (items, extra = {}) => renderSectionsHtml({ sections: [section], faq: items, ...extra });
+  const count = (html, needle) => html.split(needle).length - 1;
+
+  it('affiche un accordéon par défaut, première question ouverte, une seule à la fois', () => {
+    const html = render([q(1), q(2), q(3)]);
+    expect(html).toContain('class="faq-layout"');
+    expect(count(html, 'class="faq-item"')).toBe(3);
+    expect(count(html, 'name="faq"')).toBe(3);
+    expect(count(html, ' open')).toBe(1);
+    expect(html.indexOf('Question 1')).toBeLessThan(html.indexOf('Question 2'));
+    expect(html).not.toContain('faq-card');
+  });
+
+  it('permet plusieurs questions ouvertes si le réglage est désactivé', () => {
+    const html = render([q(1), q(2)], { faqSingleOpen: false });
+    expect(html).not.toContain('name="faq"');
+    expect(count(html, 'class="faq-item"')).toBe(2);
+  });
+
+  it('rétablit les cartes d\'origine avec faqLayout = cards', () => {
+    const html = render([q(1), q(2)], { faqLayout: 'cards' });
+    expect(html).toContain('class="faq-grid"');
+    expect(count(html, 'class="faq-card')).toBe(2);
+    expect(html).not.toContain('faq-layout');
+  });
+
+  it('ignore les questions désactivées et respecte l\'ordre', () => {
+    const html = render([q(2), q(1), q(3, { enabled: 0 })]);
+    expect(html).not.toContain('Question 3');
+    expect(html.indexOf('Question 1')).toBeLessThan(html.indexOf('Question 2'));
+  });
+
+  it('propose le bouton de contact seulement si la section Contact est affichée', () => {
+    expect(renderSectionsHtml({ sections: [section, contact], faq: [q(1)], site: { name: 'AFFBC', address: '', email: '', phone: '' } })).toContain('href="#contact"');
+    expect(render([q(1)])).not.toContain('href="#contact"');
+    expect(renderSectionsHtml({ sections: [section, { ...contact, enabled: 0 }], faq: [q(1)] })).not.toContain('href="#contact"');
+  });
+
+  it('échappe le HTML et publie des données structurées FAQPage sûres', () => {
+    const html = render([q(1, { question: '<b>Q</b> ?', answer: 'A </script><script>alert(1)</script>' }), q(2, { answer: '' })]);
+    expect(html).not.toContain('<b>Q</b>');
+    expect(html).toContain('&lt;b&gt;Q&lt;/b&gt;');
+    const match = html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
+    expect(match).not.toBeNull();
+    const data = JSON.parse(match[1]);
+    expect(data['@type']).toBe('FAQPage');
+    expect(data.mainEntity).toHaveLength(1);
+    expect(data.mainEntity[0].acceptedAnswer.text).toContain('</script>');
+    expect(match[1]).not.toContain('</script');
+    expect(html).not.toContain('<script>alert(1)</script>');
+  });
+
+  it('n\'ajoute pas de JSON-LD sans question exploitable', () => {
+    expect(render([])).not.toContain('application/ld+json');
+  });
+});
