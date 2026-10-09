@@ -561,19 +561,144 @@ function renderResourcesSection(data, section) {
   `;
 }
 
-function renderEquipmentSection(data, section) {
+// ── Disposition « étoile » partagée (sponsors, équipement) ────────────────────
+// Un élément central (logo du club, sac de sport…) et des satellites reliés par
+// un rayon. Au-delà de STAR_MAX satellites, les suivants sont listés sous
+// l'étoile pour que l'orbite reste lisible.
+const STAR_MAX = 10;
+const STAR_DENSE_FROM = 9;
+
+function starAngles(count) {
+  if (count === 1) return [90];
+  if (count === 2) return [270, 90];
+  return Array.from({ length: count }, (_, index) => (360 / count) * index);
+}
+
+function starGeometry(count, { tall = false } = {}) {
+  const dense = count >= STAR_DENSE_FROM;
+  const compact = count <= 2;
+
+  // Repère commun au SVG (rayons) et aux nœuds HTML (positions en %).
+  // `tall` : étoile plus haute pour des cartes plus longues (équipement).
+  const width = 1000;
+  const height = compact ? 520 : tall ? 960 : 900;
+  const cx = width / 2;
+  const cy = height / 2;
+  const rx = dense ? 388 : 372;
+  const ry = compact ? 0 : dense ? 345 : 335;
+
+  const points = starAngles(count).map((angle) => {
+    const rad = (angle * Math.PI) / 180;
+    const x = cx + rx * Math.sin(rad);
+    const y = cy - ry * Math.cos(rad);
+    return { x: ((x / width) * 100).toFixed(2), y: ((y / height) * 100).toFixed(2), px: x.toFixed(1), py: y.toFixed(1) };
+  });
+
+  return { dense, compact, width, height, cx, cy, rx, ry, points };
+}
+
+function renderStarLinks(geo, featuredFlags = []) {
+  const spokes = geo.points
+    .map(
+      (point, index) =>
+        `<line class="sponsor-spoke${featuredFlags[index] ? " is-featured" : ""}" x1="${geo.cx}" y1="${geo.cy}" x2="${point.px}" y2="${point.py}"></line>`
+    )
+    .join("");
+  const orbit = geo.compact ? "" : `<ellipse class="sponsor-orbit" cx="${geo.cx}" cy="${geo.cy}" rx="${geo.rx}" ry="${geo.ry}"></ellipse>`;
+  return `<svg class="sponsor-star-links" viewBox="0 0 ${geo.width} ${geo.height}" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+          ${orbit}${spokes}
+        </svg>`;
+}
+
+function renderStarSatellites(items, label, newTab) {
+  if (!items.length) return "";
+  const target = newTab ? ` target="_blank" rel="noreferrer"` : "";
   return `
-    <section id="equipement" class="section-shell">
-      <div class="section-head">
-        <div>
-          <div class="section-tag">${escapeHtml(section.title || "Équipement")}</div>
-          <h2>${escapeHtml(section.subtitle || "Protections et matériel recommandés")}</h2>
-        </div>
-        <p>${escapeHtml(data.equipmentIntro || "")}</p>
-      </div>
-      <div class="equipment-grid">
-        ${(data.equipment || [])
-          .filter((item) => Number(item.enabled ?? 1) === 1)
+      <ul class="sponsor-satellites" aria-label="${escapeHtml(label)}">
+        ${items
+          .map((item) => {
+            const inner = `${item.image ? `<img src="${escapeHtml(item.image)}" alt="" loading="lazy" decoding="async">` : ""}<span>${escapeHtml(item.label)}</span>`;
+            return item.href
+              ? `<li><a class="sponsor-chip" href="${escapeHtml(safeHref(item.href))}"${target}>${inner}</a></li>`
+              : `<li><span class="sponsor-chip">${inner}</span></li>`;
+          })
+          .join("")}
+      </ul>`;
+}
+
+// ── Équipement : sac de sport au centre de l'étoile ────────────────────────────
+// Le sac est repéré par son titre (« Sac de sport », « Sac »…) ou l'id d'origine
+// `equip-sac`. Sans sac publié, ou sans autre équipement, on garde la grille d'origine.
+const EQUIPMENT_BAG_ICON = `<svg class="equip-hub-icon" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><path d="M22 27v-5a10 10 0 0 1 20 0v5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><rect x="6" y="27" width="52" height="26" rx="13" fill="none" stroke="currentColor" stroke-width="3"/><path d="M6 39h52" fill="none" stroke="currentColor" stroke-width="3"/><rect x="27" y="35" width="10" height="8" rx="2" fill="currentColor"/></svg>`;
+
+function isEquipmentBag(item) {
+  if (item.id === "equip-sac") return true;
+  const title = String(item.title || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+  return /\bsac\b/.test(title);
+}
+
+function renderEquipmentLink(item) {
+  return item.cta_href ? `<a class="cta" href="${escapeHtml(safeHref(item.cta_href))}">${escapeHtml(item.cta_label || "Ouvrir")}</a>` : "";
+}
+
+function renderEquipmentHub(item) {
+  const srcset = cfImageSrcset(item.image_url, [400, 800]);
+  const media = item.image_url
+    ? `<img class="${imageFitClass(item.image_fit, "cover")}" src="${escapeHtml(item.image_url)}"${srcset ? ` srcset="${escapeHtml(srcset)}" sizes="240px"` : ""} alt="${escapeHtml(item.title)}" loading="lazy" decoding="async">`
+    : EQUIPMENT_BAG_ICON;
+  return `
+        <div class="equip-hub">
+          <div class="equip-hub-medal">${media}</div>
+          <div class="equip-hub-caption">
+            <h3>${escapeHtml(item.title)}</h3>
+            ${item.description ? `<p title="${escapeHtml(item.description)}">${escapeHtml(item.description)}</p>` : ""}
+            ${renderEquipmentLink(item)}
+          </div>
+        </div>`;
+}
+
+function renderEquipmentStarNode(item, position) {
+  const srcset = cfImageSrcset(item.image_url, [200, 400]);
+  const image = item.image_url
+    ? `<img class="card-media ${imageFitClass(item.image_fit, "cover")}" src="${escapeHtml(item.image_url)}"${srcset ? ` srcset="${escapeHtml(srcset)}" sizes="200px"` : ""} alt="${escapeHtml(item.title)}" loading="lazy" decoding="async">`
+    : "";
+  const description = item.description
+    ? `<p class="sponsor-node-desc" title="${escapeHtml(item.description)}">${escapeHtml(item.description)}</p>`
+    : "";
+  return `
+          <li class="sponsor-node equip-node" style="--x:${position.x}%;--y:${position.y}%">
+            <article class="equipment-card sponsor-partner-card">
+              ${image}
+              <h3>${escapeHtml(item.title)}</h3>
+              ${description}
+              ${renderEquipmentLink(item)}
+            </article>
+          </li>`;
+}
+
+function renderEquipmentStar(hub, satellites) {
+  const shown = satellites.slice(0, STAR_MAX);
+  const overflow = satellites.slice(STAR_MAX);
+  const roomy = shown.length <= 6; // assez de place pour des textes plus longs
+  const geo = starGeometry(shown.length, { tall: roomy });
+  const chips = renderStarSatellites(
+    overflow.map((item) => ({ label: item.title, image: item.image_url, href: item.cta_href })),
+    "Autres équipements",
+    false
+  );
+  return `<div class="sponsor-star equip-star${roomy ? " is-roomy" : ""}${roomy && !geo.compact ? " is-tall" : ""}${geo.dense ? " is-dense" : ""}${geo.compact ? " is-compact" : ""}" role="group" aria-label="Équipement recommandé">
+        ${renderStarLinks(geo)}${renderEquipmentHub(hub)}
+        <ul class="sponsor-star-nodes">${shown.map((item, index) => renderEquipmentStarNode(item, geo.points[index])).join("")}
+        </ul>
+      </div>${chips}`;
+}
+
+function renderEquipmentGrid(items) {
+  return `<div class="equipment-grid">
+        ${items
           .map(
             (item) => `
           <article class="equipment-card${textAlignClass(item.text_align)}">
@@ -585,15 +710,82 @@ function renderEquipmentSection(data, section) {
         `
           )
           .join("")}
+      </div>`;
+}
+
+function renderEquipmentSection(data, section) {
+  const items = (data.equipment || []).filter((item) => Number(item.enabled ?? 1) === 1);
+  const hub = items.find(isEquipmentBag);
+  const satellites = hub ? items.filter((item) => item !== hub) : [];
+  return `
+    <section id="equipement" class="section-shell">
+      <div class="section-head">
+        <div>
+          <div class="section-tag">${escapeHtml(section.title || "Équipement")}</div>
+          <h2>${escapeHtml(section.subtitle || "Protections et matériel recommandés")}</h2>
+        </div>
+        <p>${escapeHtml(data.equipmentIntro || "")}</p>
       </div>
+      ${hub && satellites.length ? renderEquipmentStar(hub, satellites) : renderEquipmentGrid(items)}
     </section>
   `;
 }
 
+function renderSponsorStarNode(item, position, dense) {
+  const featured = Number(item.featured) === 1;
+  const srcset = cfImageSrcset(item.logo_url, [200, 400]);
+  const logo = item.logo_url
+    ? `<img class="card-media ${imageFitClass(item.image_fit, "contain")}" src="${escapeHtml(item.logo_url)}"${srcset ? ` srcset="${escapeHtml(srcset)}" sizes="200px"` : ""} alt="${escapeHtml(item.name)}" loading="lazy" decoding="async">`
+    : "";
+  const description = item.description
+    ? `<p class="sponsor-node-desc" title="${escapeHtml(item.description)}">${escapeHtml(item.description)}</p>`
+    : "";
+  const link = item.website_url
+    ? `<a class="cta" href="${escapeHtml(safeHref(item.website_url))}" target="_blank" rel="noreferrer">${escapeHtml(item.cta_label || "Voir le site")}</a>`
+    : "";
+  return `
+          <li class="sponsor-node${featured ? " is-featured" : ""}" style="--x:${position.x}%;--y:${position.y}%">
+            <article class="sponsor-partner-card ${featured ? "is-featured" : ""}">
+              ${featured ? `<span class="sponsor-node-mark" aria-hidden="true">★</span>` : ""}
+              ${logo}
+              <h3>${escapeHtml(item.name)}</h3>
+              ${description}
+              ${link}
+            </article>
+          </li>`;
+}
+
+function renderSponsorStar(data, sponsors) {
+  const shown = sponsors.slice(0, STAR_MAX);
+  const overflow = sponsors.slice(STAR_MAX);
+  const geo = starGeometry(shown.length);
+  const logoUrl = data.design?.logoUrl || "/assets/logo-affbc.png";
+  const satellites = renderStarSatellites(
+    overflow.map((item) => ({ label: item.name, image: item.logo_url, href: item.website_url })),
+    "Autres partenaires",
+    true
+  );
+
+  return `
+      <div class="sponsor-star${geo.dense ? " is-dense" : ""}${geo.compact ? " is-compact" : ""}" role="group" aria-label="Partenaires du club">
+        ${renderStarLinks(geo, shown.map((item) => Number(item.featured) === 1))}
+        <div class="sponsor-hub">
+          <img src="${escapeHtml(logoUrl)}" alt="Logo American Full Fighting Bons en Chablais" loading="lazy" decoding="async">
+        </div>
+        <ul class="sponsor-star-nodes">${shown.map((item, index) => renderSponsorStarNode(item, geo.points[index], geo.dense)).join("")}
+        </ul>
+      </div>${satellites}`;
+}
+
 function renderSponsorsSection(data, section) {
-  const sponsors = (data.sponsors || [])
+  const ordered = (data.sponsors || [])
     .filter((item) => Number(item.enabled ?? 1) === 1)
     .sort((a, b) => Number(a.display_order) - Number(b.display_order));
+  // Les sponsors principaux passent en premier : le premier se place en haut de l'étoile.
+  const sponsors = [
+    ...ordered.filter((item) => Number(item.featured) === 1),
+    ...ordered.filter((item) => Number(item.featured) !== 1),
+  ];
   return `
     <section id="sponsors" class="section-shell">
       <div class="section-head">
@@ -602,21 +794,7 @@ function renderSponsorsSection(data, section) {
           <h2>${escapeHtml(section.subtitle || "Ils soutiennent le club")}</h2>
         </div>
         <p>${escapeHtml(data.sponsorsIntro || "Merci aux partenaires qui accompagnent le club et soutiennent ses projets.")}</p>
-      </div>
-      <div class="sponsors-grid">
-        ${sponsors
-          .map(
-            (item) => `
-          <article class="sponsor-partner-card ${Number(item.featured) === 1 ? "is-featured" : ""}${textAlignClass(item.text_align)}">
-            ${item.logo_url ? `<img class="card-media ${imageFitClass(item.image_fit, "contain")}" src="${escapeHtml(item.logo_url)}"${cfImageSrcset(item.logo_url, [200,400]) ? ` srcset="${escapeHtml(cfImageSrcset(item.logo_url, [200,400]))}" sizes="200px"` : ""} alt="${escapeHtml(item.name)}" loading="lazy" decoding="async">` : ""}
-            <h3>${escapeHtml(item.name)}</h3>
-            <p>${escapeHtml(item.description || "")}</p>
-            ${item.website_url ? `<a class="cta" href="${escapeHtml(safeHref(item.website_url))}" target="_blank" rel="noreferrer">${escapeHtml(item.cta_label || "Voir le site")}</a>` : ""}
-          </article>
-        `
-          )
-          .join("")}
-      </div>
+      </div>${sponsors.length ? renderSponsorStar(data, sponsors) : ""}
     </section>
   `;
 }

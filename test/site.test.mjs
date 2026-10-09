@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
+import { renderSectionsHtml } from '../public/assets/sections-render.mjs';
 import {
   checkLoginRateLimit,
   parseCookies,
@@ -302,5 +303,129 @@ describe('admin messages', () => {
     expect(workerSource).toContain('contact_messages ORDER BY created_at DESC LIMIT 200');
     expect(adminSource).toContain('function exportMessagesCSV');
     expect(adminSource).toContain('data-export-messages');
+  });
+});
+
+describe('section sponsors (étoile)', () => {
+  const section = { section_key: 'sponsors', enabled: 1, title: 'Sponsors', subtitle: 'Ils soutiennent le club.' };
+  const sponsor = (i, extra = {}) => ({
+    id: `s${i}`, name: `Sponsor ${i}`, description: '', website_url: `https://example.com/${i}`,
+    cta_label: 'Voir le site', logo_url: '', image_fit: 'contain', featured: 0, enabled: 1, display_order: i, ...extra,
+  });
+  const render = (sponsors, design = {}) => renderSectionsHtml({ sections: [section], sponsors, design });
+  const count = (html, needle) => html.split(needle).length - 1;
+
+  it('place le logo du club au centre et un rayon par sponsor', () => {
+    const html = render([sponsor(1), sponsor(2), sponsor(3)]);
+    expect(html).toContain('class="sponsor-hub"');
+    expect(html).toContain('/assets/logo-affbc.png');
+    expect(count(html, 'class="sponsor-node')).toBe(3);
+    expect(count(html, '<line class="sponsor-spoke')).toBe(3);
+  });
+
+  it('utilise le logo configuré dans le design quand il existe', () => {
+    const html = render([sponsor(1)], { logoUrl: '/media/logo-custom.png' });
+    expect(html).toContain('/media/logo-custom.png');
+  });
+
+  it('place le sponsor principal en premier, même avec un display_order plus grand', () => {
+    const html = render([sponsor(1), sponsor(2, { featured: 1, display_order: 9 })]);
+    expect(html.indexOf('Sponsor 2')).toBeLessThan(html.indexOf('Sponsor 1'));
+    expect(html).toContain('is-featured');
+  });
+
+  it('ignore les sponsors non publiés et n\'affiche pas d\'étoile sans sponsor', () => {
+    const html = render([sponsor(1, { enabled: 0 })]);
+    expect(html).not.toContain('sponsor-star');
+    expect(html).toContain('id="sponsors"');
+  });
+
+  it('bascule en mode dense à partir de 9 sponsors', () => {
+    expect(render(Array.from({ length: 8 }, (_, i) => sponsor(i + 1)))).not.toContain('is-dense');
+    expect(render(Array.from({ length: 9 }, (_, i) => sponsor(i + 1)))).toContain('is-dense');
+  });
+
+  it('range les sponsors au-delà de 10 sous l\'étoile', () => {
+    const html = render(Array.from({ length: 13 }, (_, i) => sponsor(i + 1)));
+    expect(count(html, 'class="sponsor-node')).toBe(10);
+    expect(count(html, 'class="sponsor-chip"')).toBe(3);
+  });
+
+  it('échappe le HTML des champs saisis en admin', () => {
+    const html = render([sponsor(1, { name: '<img src=x onerror=alert(1)>' })]);
+    expect(html).not.toContain('<img src=x');
+    expect(html).toContain('&lt;img src=x');
+  });
+});
+
+describe('section équipement (étoile, sac de sport au centre)', () => {
+  const section = { section_key: 'equipment', enabled: 1, title: 'Équipement', subtitle: 'Protections et matériel.' };
+  const item = (id, title, extra = {}) => ({
+    id, title, description: `Description ${title}`, cta_label: 'Voir la sélection', cta_href: 'https://boutique.example/',
+    image_url: '', image_fit: 'cover', text_align: 'left', enabled: 1, display_order: 1, ...extra,
+  });
+  const bag = item('equip-sac', 'Sac de sport');
+  const render = (equipment) => renderSectionsHtml({ sections: [section], equipment, equipmentIntro: 'Intro' });
+  const count = (html, needle) => html.split(needle).length - 1;
+  const nodesPart = (html) => html.split('<ul class="sponsor-star-nodes">')[1] || '';
+
+  it('place le sac au centre et les autres équipements autour', () => {
+    const html = render([item('g', 'Gants'), bag, item('c', 'Casque')]);
+    expect(html).toContain('class="equip-hub"');
+    expect(html).toContain('id="equipement"');
+    expect(count(html, 'class="sponsor-node equip-node"')).toBe(2);
+    expect(count(html, '<line class="sponsor-spoke')).toBe(2);
+    expect(nodesPart(html)).not.toContain('Sac de sport');
+    expect(html.indexOf('Sac de sport')).toBeLessThan(html.indexOf('Gants'));
+  });
+
+  it('repère le sac par son titre (casse et accents ignorés) ou par l\'id d\'origine', () => {
+    expect(render([item('g', 'Gants'), item('x', 'SAC à dos')])).toContain('class="equip-hub"');
+    expect(render([item('g', 'Gants'), item('equip-sac', 'Bagagerie')])).toContain('class="equip-hub"');
+    expect(render([item('g', 'Gants'), item('x', 'Sachet de magnésie')])).not.toContain('equip-hub');
+  });
+
+  it('garde la grille d\'origine sans sac, avec un sac seul ou sans équipement', () => {
+    for (const list of [[item('g', 'Gants'), item('c', 'Casque')], [bag], []]) {
+      const html = render(list);
+      expect(html).toContain('class="equipment-grid"');
+      expect(html).not.toContain('sponsor-star');
+    }
+  });
+
+  it('ignore les équipements non publiés, y compris le sac', () => {
+    expect(render([item('g', 'Gants'), { ...bag, enabled: 0 }])).toContain('class="equipment-grid"');
+    const html = render([bag, item('g', 'Gants'), item('c', 'Casque', { enabled: 0 })]);
+    expect(count(html, 'class="sponsor-node equip-node"')).toBe(1);
+  });
+
+  it('affiche la photo du sac si elle existe, sinon une icône', () => {
+    expect(render([item('g', 'Gants'), bag])).toContain('class="equip-hub-icon"');
+    const html = render([item('g', 'Gants'), { ...bag, image_url: '/media/sac.jpg' }]);
+    expect(html).toContain('/media/sac.jpg');
+    expect(html).not.toContain('equip-hub-icon');
+  });
+
+  it('adapte la hauteur et la densité au nombre de satellites', () => {
+    const many = (n) => [bag, ...Array.from({ length: n }, (_, i) => item(`e${i}`, `Équipement ${i}`))];
+    expect(render(many(5))).toContain('is-roomy is-tall');
+    expect(render(many(5))).toContain('viewBox="0 0 1000 960"');
+    expect(render(many(8))).not.toContain('is-roomy');
+    expect(render(many(9))).toContain('is-dense');
+    expect(render(many(1))).toContain('is-compact');
+  });
+
+  it('range les équipements au-delà de 10 sous l\'étoile, sans ouvrir de nouvel onglet', () => {
+    const html = render([bag, ...Array.from({ length: 12 }, (_, i) => item(`e${i}`, `Équipement ${i}`))]);
+    expect(count(html, 'class="sponsor-node equip-node"')).toBe(10);
+    expect(count(html, 'class="sponsor-chip"')).toBe(2);
+    expect(html).not.toContain('target="_blank"');
+  });
+
+  it('échappe le HTML des champs saisis en admin et neutralise les liens dangereux', () => {
+    const html = render([{ ...bag, title: 'Sac <script>alert(1)</script>' }, item('g', 'Gants', { cta_href: 'javascript:alert(1)' })]);
+    expect(html).not.toContain('<script>alert(1)');
+    expect(html).toContain('&lt;script&gt;');
+    expect(html).not.toContain('javascript:alert(1)');
   });
 });
