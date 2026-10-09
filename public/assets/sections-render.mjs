@@ -624,18 +624,19 @@ function starAngles(count) {
   return Array.from({ length: count }, (_, index) => (360 / count) * index);
 }
 
-function starGeometry(count, { tall = false } = {}) {
+function starGeometry(count, { tall = false, height: customHeight = 0 } = {}) {
   const dense = count >= STAR_DENSE_FROM;
   const compact = count <= 2;
 
   // Repère commun au SVG (rayons) et aux nœuds HTML (positions en %).
   // `tall` : étoile plus haute pour des cartes plus longues (équipement).
   const width = 1000;
-  const height = compact ? 520 : tall ? 1000 : 900;
+  const height = compact ? 520 : customHeight || (tall ? 1000 : 900);
   const cx = width / 2;
   const cy = height / 2;
   const rx = dense ? 388 : 372;
-  const ry = compact ? 0 : tall || dense ? 345 : 335;
+  // Hauteur personnalisée : l'orbite garde la marge nécessaire pour la demi-hauteur d'une carte.
+  const ry = compact ? 0 : customHeight ? customHeight / 2 - 165 : tall || dense ? 345 : 335;
 
   const points = starAngles(count).map((angle) => {
     const rad = (angle * Math.PI) / 180;
@@ -694,14 +695,13 @@ function renderEquipmentLink(item) {
   return item.cta_href ? `<a class="cta" href="${escapeHtml(safeHref(item.cta_href))}">${escapeHtml(item.cta_label || "Ouvrir")}</a>` : "";
 }
 
-// Photo d'équipement : image entière (jamais rognée, quel que soit son format)
-// dans un cadre clair. Le fond blanc des photos produit est fondu dans le
-// cadre (mix-blend-mode côté CSS), ce qui donne un effet « détouré » sans
-// retoucher les images.
+// Photo d'équipement : par défaut (réglage « cover » de l'admin) l'image remplit
+// tout le cadre ; avec « contain » elle reste entière, marges comprises, et le
+// fond blanc des photos produit est fondu dans le cadre (mix-blend-mode côté CSS).
 function renderEquipmentPhoto(item, widths, sizes) {
   const srcset = cfImageSrcset(item.image_url, widths);
   const set = srcset ? ` srcset="${escapeHtml(srcset)}" sizes="${sizes}"` : "";
-  return `<div class="equip-photo"><img class="equip-photo-img" src="${escapeHtml(item.image_url)}"${set} alt="${escapeHtml(item.title)}" loading="lazy" decoding="async"></div>`;
+  return `<div class="equip-photo"><img class="equip-photo-img ${imageFitClass(item.image_fit, "cover")}" src="${escapeHtml(item.image_url)}"${set} alt="${escapeHtml(item.title)}" loading="lazy" decoding="async"></div>`;
 }
 
 function renderEquipmentHub(item) {
@@ -741,13 +741,17 @@ function renderEquipmentStar(hub, satellites) {
   const roomy = shown.length <= 6; // assez de place pour des photos entières et des textes plus longs
   // Description du sac affichée seulement si aucun satellite n'est juste sous lui (3 ou 5 : bas libre ; 1-2 : orbite à plat).
   const hubNote = [1, 2, 3, 5].includes(shown.length);
-  const geo = starGeometry(shown.length, { tall: roomy });
+  // Photos qui remplissent tout leur cadre : à partir de 7 satellites les cartes sont plus hautes,
+  // on agrandit donc l'étoile (7-8 : 1220, 9-10 : 1250) pour qu'elles ne se chevauchent pas.
+  const dense = shown.length >= STAR_DENSE_FROM;
+  const height = roomy ? 0 : dense ? 1250 : 1220;
+  const geo = starGeometry(shown.length, { tall: roomy, height });
   const chips = renderStarSatellites(
     overflow.map((item) => ({ label: item.title, image: item.image_url, href: item.cta_href })),
     "Autres équipements",
     false
   );
-  return `<div class="sponsor-star equip-star${roomy ? " is-roomy" : ""}${hubNote ? " has-hub-note" : ""}${roomy && !geo.compact ? " is-tall" : ""}${geo.dense ? " is-dense" : ""}${geo.compact ? " is-compact" : ""}" role="group" aria-label="Équipement recommandé">
+  return `<div class="sponsor-star equip-star${roomy ? " is-roomy" : ""}${hubNote ? " has-hub-note" : ""}${roomy && !geo.compact ? " is-tall" : ""}${height === 1220 ? " is-taller" : ""}${height === 1250 ? " is-tallest" : ""}${geo.dense ? " is-dense" : ""}${geo.compact ? " is-compact" : ""}" role="group" aria-label="Équipement recommandé">
         ${renderStarLinks(geo)}${renderEquipmentHub(hub)}
         <ul class="sponsor-star-nodes">${shown.map((item, index) => renderEquipmentStarNode(item, geo.points[index])).join("")}
         </ul>

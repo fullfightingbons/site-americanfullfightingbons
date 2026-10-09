@@ -1563,15 +1563,15 @@ a.sponsor-chip:hover{border-color:var(--gold);color:var(--red-dark)}
   animation:sponsor-halo 70s linear infinite;
   pointer-events:none;
 }
-/* Photo du sac : remplit tout le médaillon ; l'image reste entière (marge de 15 %
-   pour que même les coins d'une photo carrée tiennent dans le cercle) sur un fond flouté. */
+/* Photo du sac : remplit tout le médaillon (cover) ; en « contain » l'image reste entière,
+   avec une marge de 15 % pour que même les coins d'une photo carrée tiennent dans le cercle. */
 .equip-hub-medal .equip-photo{
   position:absolute;
   inset:0;
   border:0;
   border-radius:50%;
 }
-.equip-hub-medal .equip-photo-img{padding:15%}
+.equip-hub-medal .equip-photo-img.is-contain{padding:15%}
 .equip-hub-icon{
   width:52%;
   height:52%;
@@ -1615,9 +1615,10 @@ a.sponsor-chip:hover{border-color:var(--gold);color:var(--red-dark)}
   color:var(--red-dark);
 }
 .equip-star.is-tall{aspect-ratio:1000/1000}
-/* Photos jamais rognées : image entière (contain) dans un cadre clair, quel que soit son
-   format (carré, portrait, paysage, PNG détouré) ou le réglage « cover ». Le fond blanc d'une
-   photo produit est fondu dans le cadre (multiply) pour un rendu détouré. */
+.equip-star.is-taller{aspect-ratio:1000/1220}
+.equip-star.is-tallest{aspect-ratio:1000/1250}
+/* Photo d'équipement : le cadre est rempli par l'image (cover, réglage par défaut de l'admin).
+   Avec « contain », l'image reste entière dans le cadre et son fond blanc est fondu (multiply). */
 .equip-photo{
   position:relative;
   display:block;
@@ -1631,13 +1632,17 @@ a.sponsor-chip:hover{border-color:var(--gold);color:var(--red-dark)}
   display:block;
   width:100%;
   height:100%;
+  padding:0;
+  object-fit:cover;
+}
+.equip-photo-img.is-contain{
   padding:5%;
   object-fit:contain;
   mix-blend-mode:multiply;
 }
 .equip-node .equip-photo{
-  /* 7 à 10 équipements : orbite serrée, cadre bas et large pour éviter tout chevauchement. */
-  aspect-ratio:5/2;
+  /* 7 à 10 équipements : cadre 3/2 (l'étoile est agrandie pour l'accueillir). */
+  aspect-ratio:3/2;
   margin-bottom:.5rem;
 }
 /* 6 équipements ou moins : place pour de vraies vignettes. */
@@ -1663,7 +1668,7 @@ a.sponsor-chip:hover{border-color:var(--gold);color:var(--red-dark)}
     margin-top:-26px;
     width:min(88vw,300px);
   }
-  .equip-star,.equip-star.is-tall{aspect-ratio:auto}
+  .equip-star,.equip-star.is-tall,.equip-star.is-taller,.equip-star.is-tallest{aspect-ratio:auto}
   .equip-star:not(.has-hub-note) .equip-hub-caption p{display:-webkit-box}
   .equip-star.is-roomy .sponsor-node-desc{-webkit-line-clamp:4}
   .equip-star .equip-node .equip-photo,

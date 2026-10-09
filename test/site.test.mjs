@@ -406,13 +406,15 @@ describe('section équipement (étoile, sac de sport au centre)', () => {
     expect(html).not.toContain('equip-hub-icon');
   });
 
-  it('affiche chaque photo entière dans un cadre dédié (satellites et sac), sans calque superflu', () => {
+  it('remplit le cadre avec chaque photo (cover) et la garde entière en contain', () => {
     const html = render([{ ...bag, image_url: '/media/sac.jpg' }, item('g', 'Gants', { image_url: '/media/gants.jpg', image_fit: 'cover' })]);
     expect(count(html, 'class="equip-photo"')).toBe(2);
-    expect(count(html, 'class="equip-photo-img"')).toBe(2);
+    expect(count(html, 'class="equip-photo-img is-cover"')).toBe(2);
     expect(html).toContain('alt="Gants"');
     expect(html).not.toContain('equip-photo-bg');
     expect(render([item('g', 'Gants'), bag])).not.toContain('equip-photo');
+    const contained = render([bag, item('g', 'Gants', { image_url: '/media/gants.jpg', image_fit: 'contain' })]);
+    expect(contained).toContain('class="equip-photo-img is-contain"');
   });
 
   it('adapte la hauteur et la densité au nombre de satellites', () => {
@@ -422,6 +424,9 @@ describe('section équipement (étoile, sac de sport au centre)', () => {
     expect(render(many(5))).toContain('viewBox="0 0 1000 1000"');
     expect(render(many(8))).not.toContain('is-roomy');
     expect(render(many(9))).toContain('is-dense');
+    expect(render(many(8))).toContain('is-taller');
+    expect(render(many(9))).toContain('is-tallest');
+    expect(render(many(5))).not.toContain('is-taller');
     expect(render(many(1))).toContain('is-compact');
   });
 
