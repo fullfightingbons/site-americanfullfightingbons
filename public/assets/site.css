@@ -1992,3 +1992,124 @@ a.sponsor-chip:hover{border-color:var(--gold);color:var(--red-dark)}
 @media (prefers-reduced-motion:reduce){
   .faq-item,.faq-icon,.faq-item::details-content{transition:none}
 }
+
+
+/* ── Membre actif : tuiles compactes ────────────────────────────────────
+   Tuiles entièrement cliquables, de même hauteur ; le bouton est collé en bas. */
+.res-grid{
+  display:grid;
+  grid-template-columns:repeat(var(--res-cols,3),minmax(0,1fr));
+  gap:16px;
+  margin-left:auto;
+  margin-right:auto;
+}
+.res-grid--1{max-width:440px}
+.res-grid--2{max-width:760px}
+.res-grid--4{max-width:860px}
+.res-tile{
+  display:flex;
+  flex-direction:column;
+  gap:.7rem;
+  padding:1.2rem 1.25rem 1.1rem;
+  border:1px solid var(--line);
+  border-radius:22px;
+  background:rgba(255,253,249,.94);
+  box-shadow:0 8px 22px rgba(7,17,29,.06);
+  color:inherit;
+  text-decoration:none;
+  transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease;
+}
+a.res-tile:hover,
+a.res-tile:focus-visible{
+  transform:translateY(-3px);
+  border-color:rgba(159,36,19,.45);
+  box-shadow:0 16px 34px rgba(7,17,29,.12);
+}
+a.res-tile:focus-visible{outline:2px solid var(--red-dark);outline-offset:2px}
+.res-tile-top{display:flex;align-items:center}
+.res-badge{
+  flex:0 0 auto;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:56px;
+  height:56px;
+  overflow:hidden;
+  border:1px solid rgba(214,172,84,.45);
+  border-radius:50%;
+  background:rgba(214,172,84,.22);
+  font-family:var(--font-card-title);
+  font-size:1.3rem;
+  font-weight:800;
+  color:var(--red-dark);
+}
+.res-badge img{
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+.res-badge img.is-contain{
+  padding:7px;
+  object-fit:contain;
+  background:#fffefb;
+}
+.res-tile h3{
+  margin:.2rem 0 0;
+  font-family:var(--font-card-title);
+  font-size:1.12rem;
+  line-height:1.25;
+  color:var(--ink-strong);
+  overflow-wrap:anywhere;
+}
+.res-tile p{
+  margin:0;
+  font-size:.93rem;
+  line-height:1.55;
+  color:var(--muted);
+  overflow-wrap:anywhere;
+}
+.res-go{
+  display:inline-flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:.5rem;
+  margin-top:auto;
+  padding-top:.7rem;
+  border-top:1px solid var(--line);
+  font-weight:800;
+  font-size:.9rem;
+  color:var(--red-dark);
+}
+.res-arrow{
+  flex:0 0 auto;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:30px;
+  height:30px;
+  border:1.5px solid var(--line-strong);
+  border-radius:50%;
+  font-size:.95rem;
+  line-height:1;
+  transition:transform .2s ease,background-color .2s ease,border-color .2s ease;
+}
+a.res-tile:hover .res-arrow,
+a.res-tile:focus-visible .res-arrow{
+  transform:translateX(3px);
+  background:rgba(159,36,19,.08);
+  border-color:var(--red-dark);
+}
+.res-tile.text-center .res-tile-top{justify-content:center}
+.res-tile.text-right .res-tile-top{justify-content:flex-end}
+@media (max-width:900px){
+  .res-grid,.res-grid--2,.res-grid--4{grid-template-columns:repeat(2,minmax(0,1fr));max-width:none}
+  .res-grid--1{grid-template-columns:minmax(0,1fr);max-width:440px}
+}
+@media (max-width:600px){
+  .res-grid,.res-grid--2,.res-grid--4{grid-template-columns:minmax(0,1fr)}
+}
+@media (prefers-reduced-motion:reduce){
+  .res-tile,.res-arrow{transition:none}
+  a.res-tile:hover,a.res-tile:focus-visible{transform:none}
+}

@@ -625,3 +625,63 @@ describe('section FAQ (accordéon)', () => {
     expect(render([])).not.toContain('application/ld+json');
   });
 });
+
+describe('section membre actif (tuiles compactes)', () => {
+  const section = { section_key: 'resources', enabled: 1, title: 'Membre actif', subtitle: 'Devenez un membre actif du club' };
+  const res = (i, extra = {}) => ({
+    id: `r${i}`, title: `Accès ${i}`, description: `Description ${i}`, cta_label: `Ouvrir ${i}`, cta_href: `https://exemple.fr/${i}`,
+    image_url: '', image_fit: 'contain', enabled: 1, display_order: i, ...extra,
+  });
+  const render = (items, extra = {}) => renderSectionsHtml({ sections: [section], resources: items, ...extra });
+  const count = (html, needle) => html.split(needle).length - 1;
+
+  it('rend chaque ressource en tuile entièrement cliquable avec son bouton', () => {
+    const html = render([res(1), res(2), res(3)]);
+    expect(count(html, '<a class="res-tile"')).toBe(3);
+    expect(html).toContain('href="https://exemple.fr/2"');
+    expect(count(html, 'class="res-go"')).toBe(3);
+    expect(html).toContain('Ouvrir 3');
+    expect(html).not.toContain('resource-card');
+  });
+
+  it('adapte les colonnes au nombre de tuiles', () => {
+    expect(render([res(1)])).toContain('res-grid--1" style="--res-cols:1"');
+    expect(render([res(1), res(2)])).toContain('res-grid--2" style="--res-cols:2"');
+    expect(render([res(1), res(2), res(3)])).toContain('res-grid--3" style="--res-cols:3"');
+    expect(render([res(1), res(2), res(3), res(4)])).toContain('res-grid--4" style="--res-cols:2"');
+    expect(render([1, 2, 3, 4, 5, 6].map((i) => res(i)))).toContain('style="--res-cols:3"');
+  });
+
+  it('affiche l\'initiale sans image, la miniature sinon, et ignore les ressources désactivées', () => {
+    const html = render([res(1, { title: 'élan' }), res(2, { image_url: '/media/a.jpg', image_fit: 'cover' }), res(3, { enabled: 0 })]);
+    expect(html).toContain('>É<');
+    expect(html).toContain('src="/media/a.jpg"');
+    expect(html).toContain('class="is-cover"');
+    expect(html).not.toContain('Accès 3');
+  });
+
+  it('garde une tuile sans lien comme simple bloc, sans bouton', () => {
+    const html = render([res(1, { cta_href: '', cta_label: '' }), res(2)]);
+    expect(html).toContain('<div class="res-tile"');
+    expect(count(html, 'class="res-go"')).toBe(1);
+  });
+
+  it('affiche le bouton principal selon le réglage, avec « S\'inscrire » par défaut', () => {
+    const cta = { label: '', href: 'https://inscription.exemple.fr/', enabled: true };
+    const html = render([res(1)], { resourcesCta: cta });
+    expect(html).toContain('class="section-actions"');
+    expect(html).toContain('href="https://inscription.exemple.fr/"');
+    expect(html).toContain('S&#39;inscrire');
+    expect(render([res(1)], { resourcesCta: { ...cta, enabled: false } })).not.toContain('section-actions');
+    expect(render([res(1)], { resourcesCta: { ...cta, href: '' } })).not.toContain('section-actions');
+    expect(render([res(1)])).not.toContain('section-actions');
+  });
+
+  it('propose une intro par défaut et échappe le HTML saisi en admin', () => {
+    const html = render([res(1, { title: '<i>x</i>', description: '<b>d</b>' })]);
+    expect(html).toContain('tout ce qu&#39;il faut');
+    expect(html).not.toContain('<i>x</i>');
+    expect(html).toContain('&lt;i&gt;x&lt;/i&gt;');
+    expect(render([res(1)], { resourcesIntro: 'Mon intro' })).toContain('Mon intro');
+  });
+});

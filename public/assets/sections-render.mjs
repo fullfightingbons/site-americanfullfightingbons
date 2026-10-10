@@ -683,7 +683,47 @@ function renderTestimonialsSection(data, section) {
   `;
 }
 
+// ── Membre actif : tuiles compactes ────────────────────────────────────
+// Chaque ressource est une tuile entièrement cliquable : pastille (photo en
+// miniature ou initiale), titre, description, puis le libellé du bouton collé
+// en bas de tuile (alignement identique d'une tuile à l'autre, avec ou sans
+// image). Un bouton principal optionnel (par défaut « S'inscrire ») clôt la
+// section ; il se règle dans l'admin (resources_cta_*).
+function resourceColumns(count) {
+  if (count === 4) return 2;
+  return Math.max(1, Math.min(count, 3));
+}
+
+function renderResourceBadge(item) {
+  if (item.image_url) {
+    const srcset = cfImageSrcset(item.image_url, [100, 200]);
+    return `<span class="res-badge"><img class="${imageFitClass(item.image_fit, "contain")}" src="${escapeHtml(item.image_url)}"${srcset ? ` srcset="${escapeHtml(srcset)}" sizes="56px"` : ""} alt="" width="56" height="56" loading="lazy" decoding="async"></span>`;
+  }
+  const initial = String(item.title || "").trim().charAt(0).toUpperCase() || "★";
+  return `<span class="res-badge" aria-hidden="true">${escapeHtml(initial)}</span>`;
+}
+
+function renderResourceTile(item) {
+  const href = item.cta_href ? safeHref(item.cta_href) : "";
+  const tag = href ? "a" : "div";
+  const attrs = href ? ` href="${escapeHtml(href)}"` : "";
+  return `
+          <${tag} class="res-tile${textAlignClass(item.text_align)}"${attrs}>
+            <div class="res-tile-top">${renderResourceBadge(item)}</div>
+            <h3>${escapeHtml(item.title)}</h3>
+            ${item.description ? `<p>${escapeHtml(item.description)}</p>` : ""}
+            ${href ? `<span class="res-go">${escapeHtml(item.cta_label || "Ouvrir")}<span class="res-arrow" aria-hidden="true">→</span></span>` : ""}
+          </${tag}>
+        `;
+}
+
 function renderResourcesSection(data, section) {
+  const items = (data.resources || [])
+    .filter((item) => Number(item.enabled ?? 1) === 1)
+    .sort((a, b) => Number(a.display_order) - Number(b.display_order));
+  const cols = resourceColumns(items.length);
+  const cta = data.resourcesCta;
+  const showCta = cta && cta.enabled !== false && cta.href;
   return `
     <section id="ressources" class="section-shell">
       <div class="section-head">
@@ -691,23 +731,15 @@ function renderResourcesSection(data, section) {
           <div class="section-tag">${escapeHtml(section.title || "Membre actif")}</div>
           <h2>${escapeHtml(section.subtitle || "Accès utiles pour la saison")}</h2>
         </div>
-        <p>${escapeHtml(data.resourcesIntro || "")}</p>
+        <p>${escapeHtml(data.resourcesIntro || "Inscription, boutique, suivi de votre dossier : tout ce qu'il faut pour vivre pleinement la saison au club.")}</p>
       </div>
-      <div class="resource-grid">
-        ${(data.resources || [])
-          .filter((item) => Number(item.enabled ?? 1) === 1)
-          .map(
-            (item) => `
-          <article class="resource-card${textAlignClass(item.text_align)}">
-            ${item.image_url ? `<img class="card-media ${imageFitClass(item.image_fit, "contain")}" src="${escapeHtml(item.image_url)}"${cfImageSrcset(item.image_url, [400,800]) ? ` srcset="${escapeHtml(cfImageSrcset(item.image_url, [400,800]))}" sizes="(max-width: 640px) 100vw, 400px"` : ""} alt="${escapeHtml(item.title)}" loading="lazy" decoding="async">` : ""}
-            <h3>${escapeHtml(item.title)}</h3>
-            <p>${escapeHtml(item.description)}</p>
-            ${item.cta_href ? `<a class="cta" href="${escapeHtml(safeHref(item.cta_href))}">${escapeHtml(item.cta_label || "Ouvrir")}</a>` : ""}
-          </article>
-        `
-          )
-          .join("")}
+      <div class="res-grid res-grid--${items.length === 4 ? 4 : Math.min(items.length, 3)}" style="--res-cols:${cols}">
+        ${items.map(renderResourceTile).join("")}
       </div>
+      ${showCta ? `
+      <div class="section-actions">
+        <a class="btn btn-red" href="${escapeHtml(safeHref(cta.href))}">${escapeHtml(cta.label || "S'inscrire")}</a>
+      </div>` : ""}
     </section>
   `;
 }

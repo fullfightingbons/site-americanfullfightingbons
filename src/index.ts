@@ -521,6 +521,9 @@ function publicResponseSettings(settings: Record<string, string>, env: Env): Rec
       settings.gallery_intro ||
       "Une sélection d'images pour retrouver l'énergie du club, le rythme des séances et les temps forts de la saison.",
     resources_intro: settings.resources_intro || "",
+    resources_cta_label: settings.resources_cta_label || "S'inscrire",
+    resources_cta_href: settings.resources_cta_href || "https://inscription.americanfullfightingbons.fr/",
+    resources_cta_enabled: settings.resources_cta_enabled || "1",
     equipment_intro: settings.equipment_intro || "",
     sponsors_intro: settings.sponsors_intro || "Merci aux partenaires qui accompagnent le club et soutiennent ses projets.",
     news_intro: settings.news_intro || "Les informations récentes du club restent visibles ici.",
@@ -974,6 +977,11 @@ async function getBootstrap(env: Env): Promise<Row> {
     },
     galleryIntro: settings.gallery_intro,
     resourcesIntro: settings.resources_intro,
+    resourcesCta: {
+      label: settings.resources_cta_label,
+      href: settings.resources_cta_href,
+      enabled: parseBooleanSetting(settings.resources_cta_enabled),
+    },
     equipmentIntro: settings.equipment_intro,
     sponsorsIntro: settings.sponsors_intro,
     newsIntro: settings.news_intro,

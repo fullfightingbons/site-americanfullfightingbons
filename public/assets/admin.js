@@ -165,6 +165,17 @@ const SETTINGS_GROUPS = [
     ],
   },
   {
+    id: "resources-cta",
+    title: "Membre actif (bouton)",
+    icon: "→",
+    description: "Bouton affiché sous les tuiles de la section « Membre actif ». Les tuiles elles-mêmes se modifient dans « Ressources ».",
+    fields: [
+      ["resources_cta_enabled", "Afficher le bouton"],
+      ["resources_cta_label", "Texte du bouton"],
+      ["resources_cta_href", "Lien du bouton"],
+    ],
+  },
+  {
     id: "faq-options",
     title: "FAQ (affichage)",
     icon: "?",
@@ -1261,6 +1272,9 @@ async function loadAdmin() {
     highlights_intro: state.highlightsIntro,
     gallery_intro: state.galleryIntro,
     resources_intro: state.resourcesIntro,
+    resources_cta_label: state.resourcesCta?.label,
+    resources_cta_href: state.resourcesCta?.href,
+    resources_cta_enabled: state.resourcesCta?.enabled ? "1" : "0",
     equipment_intro: state.equipmentIntro,
     sponsors_intro: state.sponsorsIntro,
     news_intro: state.newsIntro,
