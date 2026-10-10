@@ -684,23 +684,23 @@ function renderTestimonialsSection(data, section) {
 }
 
 // ── Membre actif : tuiles compactes ────────────────────────────────────
-// Chaque ressource est une tuile entièrement cliquable : pastille (photo en
-// miniature ou initiale), titre, description, puis le libellé du bouton collé
-// en bas de tuile (alignement identique d'une tuile à l'autre, avec ou sans
-// image). Un bouton principal optionnel (par défaut « S'inscrire ») clôt la
-// section ; il se règle dans l'admin (resources_cta_*).
+// Chaque ressource est une tuile entièrement cliquable : visuel pleine largeur
+// en tête (photo, ou grande initiale si la ressource n'a pas d'image, pour que
+// toutes les tuiles aient la même allure), titre, description, puis le libellé
+// du bouton collé en bas de tuile. Un bouton principal optionnel (par défaut
+// « S'inscrire ») clôt la section ; il se règle dans l'admin (resources_cta_*).
 function resourceColumns(count) {
   if (count === 4) return 2;
   return Math.max(1, Math.min(count, 3));
 }
 
-function renderResourceBadge(item) {
+function renderResourceMedia(item) {
   if (item.image_url) {
-    const srcset = cfImageSrcset(item.image_url, [100, 200]);
-    return `<span class="res-badge"><img class="${imageFitClass(item.image_fit, "contain")}" src="${escapeHtml(item.image_url)}"${srcset ? ` srcset="${escapeHtml(srcset)}" sizes="56px"` : ""} alt="" width="56" height="56" loading="lazy" decoding="async"></span>`;
+    const srcset = cfImageSrcset(item.image_url, [400, 800]);
+    return `<div class="res-media"><img class="res-media-img ${imageFitClass(item.image_fit, "contain")}" src="${escapeHtml(item.image_url)}"${srcset ? ` srcset="${escapeHtml(srcset)}" sizes="(max-width: 600px) 92vw, (max-width: 900px) 46vw, 380px"` : ""} alt="" loading="lazy" decoding="async"></div>`;
   }
   const initial = String(item.title || "").trim().charAt(0).toUpperCase() || "★";
-  return `<span class="res-badge" aria-hidden="true">${escapeHtml(initial)}</span>`;
+  return `<div class="res-media res-media--empty" aria-hidden="true">${escapeHtml(initial)}</div>`;
 }
 
 function renderResourceTile(item) {
@@ -709,10 +709,12 @@ function renderResourceTile(item) {
   const attrs = href ? ` href="${escapeHtml(href)}"` : "";
   return `
           <${tag} class="res-tile${textAlignClass(item.text_align)}"${attrs}>
-            <div class="res-tile-top">${renderResourceBadge(item)}</div>
-            <h3>${escapeHtml(item.title)}</h3>
-            ${item.description ? `<p>${escapeHtml(item.description)}</p>` : ""}
-            ${href ? `<span class="res-go">${escapeHtml(item.cta_label || "Ouvrir")}<span class="res-arrow" aria-hidden="true">→</span></span>` : ""}
+            ${renderResourceMedia(item)}
+            <div class="res-body">
+              <h3>${escapeHtml(item.title)}</h3>
+              ${item.description ? `<p>${escapeHtml(item.description)}</p>` : ""}
+              ${href ? `<span class="res-go">${escapeHtml(item.cta_label || "Ouvrir")}<span class="res-arrow" aria-hidden="true">→</span></span>` : ""}
+            </div>
           </${tag}>
         `;
 }

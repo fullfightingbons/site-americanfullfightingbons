@@ -652,11 +652,12 @@ describe('section membre actif (tuiles compactes)', () => {
     expect(render([1, 2, 3, 4, 5, 6].map((i) => res(i)))).toContain('style="--res-cols:3"');
   });
 
-  it('affiche l\'initiale sans image, la miniature sinon, et ignore les ressources désactivées', () => {
+  it('affiche une grande initiale sans image, le visuel sinon, et ignore les ressources désactivées', () => {
     const html = render([res(1, { title: 'élan' }), res(2, { image_url: '/media/a.jpg', image_fit: 'cover' }), res(3, { enabled: 0 })]);
     expect(html).toContain('>É<');
     expect(html).toContain('src="/media/a.jpg"');
-    expect(html).toContain('class="is-cover"');
+    expect(html).toContain('class="res-media-img is-cover"');
+    expect(html).toContain('res-media res-media--empty');
     expect(html).not.toContain('Accès 3');
   });
 
