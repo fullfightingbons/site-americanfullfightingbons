@@ -494,6 +494,21 @@ describe('section équipe (pyramide)', () => {
     expect(flat).not.toContain('team-pyramid');
   });
 
+  it('cadre chaque portrait sur son point de focus (object-position)', () => {
+    const photo = (extra) => render([
+      member('Alice', 'Présidente', { image_url: '/api/images/uploads/a.jpg', ...extra }),
+      member('Gaël', 'Assistant'),
+    ]);
+    // défaut : centré horizontalement, légèrement au-dessus du milieu
+    expect(photo({})).toContain('style="object-position:50% 30%"');
+    expect(photo({ image_focus_x: 35, image_focus_y: 20 })).toContain('style="object-position:35% 20%"');
+    // valeurs hors bornes ou invalides : ramenées dans 0–100 / défaut
+    expect(photo({ image_focus_x: 250, image_focus_y: -5 })).toContain('style="object-position:100% 0%"');
+    expect(photo({ image_focus_x: 'abc', image_focus_y: null })).toContain('style="object-position:50% 30%"');
+    // `sizes` suit la taille réellement affichée du portrait du sommet (220px)
+    expect(photo({})).toContain('sizes="220px"');
+  });
+
   it('échappe le HTML des champs saisis en admin', () => {
     const html = render([member('<b>x</b>', 'Président'), member('Gaël', 'Assistant')]);
     expect(html).not.toContain('<b>x</b>');

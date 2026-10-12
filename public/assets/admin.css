@@ -1448,3 +1448,43 @@
 .premium-login-badge { display: inline-flex; }
 .premium-login-title { margin-top: 1rem; font-size: 1.4rem; color: #f9fafb; }
 .premium-login-sub { margin-top: 0.4rem; font-size: 0.9rem; color: #9ca3af; }
+
+/* ── Sélecteur de point de cadrage des portraits ───────────────────────── */
+.premium-focus-stage {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  line-height: 0;
+  cursor: crosshair;
+}
+.premium-focus-stage[hidden] { display: none; }
+.premium-focus-stage .premium-image-preview {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: 320px;
+  object-fit: contain;
+}
+.premium-focus-dot {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: rgba(216, 74, 47, 0.75);
+  box-shadow: 0 0 0 1px rgba(15, 23, 32, 0.6);
+  pointer-events: none;
+}
+.premium-focus-hint { display: block; margin-top: 0.4rem; opacity: 0.75; }
+.premium-focus-round {
+  display: block;
+  width: 96px;
+  height: 96px;
+  margin-top: 0.6rem;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+}
+.premium-focus-hint[hidden], .premium-focus-round[hidden] { display: none; }

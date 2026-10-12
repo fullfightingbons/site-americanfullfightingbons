@@ -67,6 +67,17 @@ export function imageFitClass(value, fallback = "cover") {
   return String(value || fallback) === "contain" ? "is-contain" : "is-cover";
 }
 
+// Cadrage d'un portrait : `object-position` en % (0–100). Valeurs absentes ou
+// invalides → centré horizontalement, légèrement au-dessus du milieu (visage).
+export function photoFocusStyle(item, defaultX = 50, defaultY = 30) {
+  const pct = (value, fallback) => {
+    if (value === null || value === undefined || value === "") return fallback;
+    const n = Number(value);
+    return Number.isFinite(n) ? Math.min(100, Math.max(0, Math.round(n))) : fallback;
+  };
+  return `object-position:${pct(item.image_focus_x, defaultX)}% ${pct(item.image_focus_y, defaultY)}%`;
+}
+
 export function textAlignClass(value) {
   const align = String(value || "").toLowerCase();
   if (align === "center") return " text-center";
@@ -337,10 +348,19 @@ export function teamTier(item) {
   return 3;
 }
 
-function renderTeamCard(item, tier) {
+// Largeur réellement affichée du portrait, pour que le navigateur choisisse la
+// bonne variante du srcset (pyramide : 220/180/130 px ; grille : pleine carte).
+const TEAM_PHOTO_SIZES = {
+  pyramid: { 1: "220px", 2: "180px", 3: "130px" },
+  grid: "(max-width: 640px) 100vw, (max-width: 900px) 50vw, 380px",
+};
+
+function renderTeamCard(item, tier, layout = "grid") {
+  const sizes = layout === "pyramid" ? TEAM_PHOTO_SIZES.pyramid[tier] : TEAM_PHOTO_SIZES.grid;
+  const srcset = item.image_url ? cfImageSrcset(item.image_url, [260, 440, 660]) : null;
   return `
           <article class="team-card team-card--tier${tier}${textAlignClass(item.text_align)}">
-            ${item.image_url ? `<img class="team-photo" src="${escapeHtml(item.image_url)}"${cfImageSrcset(item.image_url, [200,400]) ? ` srcset="${escapeHtml(cfImageSrcset(item.image_url, [200,400]))}" sizes="200px"` : ""} alt="${escapeHtml(item.full_name)}" loading="lazy" decoding="async">` : ""}
+            ${item.image_url ? `<img class="team-photo" src="${escapeHtml(item.image_url)}"${srcset ? ` srcset="${escapeHtml(srcset)}" sizes="${sizes}"` : ""} style="${photoFocusStyle(item)}" alt="${escapeHtml(item.full_name)}" loading="lazy" decoding="async">` : ""}
             <div class="meta">${escapeHtml(item.role_label)}</div>
             <h3>${escapeHtml(item.full_name)}</h3>
             <div class="belt">${escapeHtml(item.belt_label)}</div>
@@ -364,7 +384,7 @@ function renderTeamPyramid(tiers) {
           .map(
             (tier) => `
         <div class="team-pyramid-tier team-pyramid-tier--${tier}" data-tier="${tier}" aria-label="${escapeHtml(TEAM_TIER_LABELS[tier])}">
-          ${tiers[tier].map((item) => renderTeamCard(item, tier)).join("")}
+          ${tiers[tier].map((item) => renderTeamCard(item, tier, "pyramid")).join("")}
         </div>`
           )
           .join("")}

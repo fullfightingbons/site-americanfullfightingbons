@@ -870,7 +870,9 @@ const TEAM_FIELDS = [
   { key: "full_name", label: "Nom" },
   { key: "role_label", label: "Rôle" },
   { key: "belt_label", label: "Ceinture" },
-  { key: "image_url", label: "Photo", type: "image" },
+  { key: "image_url", label: "Photo", type: "image", focus: ["image_focus_x", "image_focus_y"] },
+  { key: "image_focus_x", label: "Cadrage horizontal (%)", type: "number" },
+  { key: "image_focus_y", label: "Cadrage vertical (%)", type: "number" },
   { key: "pyramid_level", label: "Position dans la pyramide", type: "select", options: ["auto", "sommet", "milieu", "base"] },
   { key: "text_align", label: "Alignement texte", type: "select", options: ["left", "center", "right"] },
   { key: "display_order", label: "Ordre", type: "number" },
@@ -1380,7 +1382,7 @@ function buildNewItem(kind) {
   const defaults = {
     sections: { id, section_key: "new_section", title: "Nouvelle section", subtitle: "", enabled: 0, display_order: order },
     schedule: { id, day_label: "Jour", time_label: "Horaire", note: "", text_align: "left", display_order: order },
-    team: { id, full_name: "Nouveau membre", role_label: "Rôle", belt_label: "", bio: "", image_url: "", text_align: "left", pyramid_level: "auto", display_order: order },
+    team: { id, full_name: "Nouveau membre", role_label: "Rôle", belt_label: "", bio: "", image_url: "", image_focus_x: 50, image_focus_y: 30, text_align: "left", pyramid_level: "auto", display_order: order },
     news: { id, title: "Nouvelle actualité", body: "", date_label: "", badge: "", cta_label: "", cta_href: "", image_url: "", image_fit: "cover", text_align: "left", enabled: 1, display_order: order },
     highlights: { id, title: "Nouvel encart", body: "", badge: "", cta_label: "", cta_href: "", text_align: "left", display_order: order },
     gallery: { id, title: "Nouvelle image", image_url: "", alt_text: "", text_align: "left", display_order: order },
@@ -1940,6 +1942,7 @@ function openEditModal(config) {
   const form = document.getElementById("modal-editor-form");
   if (!form) return;
   form.innerHTML = "";
+  const afterBuild = []; // callbacks exécutés une fois tous les champs présents dans le formulaire
 
   config.fields.forEach((field) => {
     const wrapper = document.createElement("label");
@@ -2003,6 +2006,7 @@ function openEditModal(config) {
           input.value = url;
           preview.src = url;
           preview.hidden = false;
+          input.dispatchEvent(new Event("input"));
           showStatus("Image envoyée et prête à enregistrer.", false);
         } catch (error) {
           showStatus(error instanceof Error ? error.message : "Image impossible à envoyer.");
@@ -2017,14 +2021,67 @@ function openEditModal(config) {
         if (input.value) preview.src = input.value;
       });
 
-      tools.appendChild(preview);
-      tools.appendChild(fileInput);
+      if (field.focus) {
+        // Portrait : clic sur le visage → point de cadrage (object-position),
+        // avec un aperçu rond identique au rendu public.
+        const [fxName, fyName] = field.focus;
+        const clampPct = (value, fallback) => {
+          const n = Number(value);
+          return value === "" || value === null || value === undefined || !Number.isFinite(n)
+            ? fallback
+            : Math.min(100, Math.max(0, Math.round(n)));
+        };
+        const stage = document.createElement("div");
+        stage.className = "premium-focus-stage";
+        const dot = document.createElement("span");
+        dot.className = "premium-focus-dot";
+        stage.append(preview, dot);
+        const hint = document.createElement("small");
+        hint.className = "premium-focus-hint";
+        hint.textContent = "Cliquez sur le visage pour le centrer dans le rond.";
+        const round = document.createElement("img");
+        round.className = "premium-focus-round";
+        round.alt = "Aperçu du portrait";
+
+        const sync = () => {
+          const fx = form.elements[fxName];
+          const fy = form.elements[fyName];
+          const x = clampPct(fx?.value, 50);
+          const y = clampPct(fy?.value, 30);
+          dot.style.left = `${x}%`;
+          dot.style.top = `${y}%`;
+          round.style.objectPosition = `${x}% ${y}%`;
+          round.src = input.value || "";
+          stage.hidden = !input.value;
+          round.hidden = !input.value;
+          hint.hidden = !input.value;
+        };
+        preview.addEventListener("click", (event) => {
+          const rect = preview.getBoundingClientRect();
+          if (!rect.width || !rect.height) return;
+          const fx = form.elements[fxName];
+          const fy = form.elements[fyName];
+          if (fx) fx.value = clampPct(((event.clientX - rect.left) / rect.width) * 100, 50);
+          if (fy) fy.value = clampPct(((event.clientY - rect.top) / rect.height) * 100, 30);
+          sync();
+        });
+        input.addEventListener("input", sync);
+        afterBuild.push(() => {
+          [fxName, fyName].forEach((name) => form.elements[name]?.addEventListener("input", sync));
+          sync();
+        });
+        tools.append(stage, hint, round, fileInput);
+      } else {
+        tools.appendChild(preview);
+        tools.appendChild(fileInput);
+      }
       wrapper.appendChild(tools);
     }
 
     form.appendChild(wrapper);
   });
 
+  afterBuild.forEach((fn) => fn());
   form.dataset.kind = config.kind;
   form.dataset.id = config.id;
   openModal("modal-editor");

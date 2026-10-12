@@ -122,7 +122,7 @@ const EDITABLE_TABLES = {
   },
   team_members: {
     primaryKey: "id",
-    allowedColumns: ["id", "full_name", "role_label", "belt_label", "bio", "image_url", "text_align", "pyramid_level", "display_order"],
+    allowedColumns: ["id", "full_name", "role_label", "belt_label", "bio", "image_url", "image_focus_x", "image_focus_y", "text_align", "pyramid_level", "display_order"],
   },
   highlights: {
     primaryKey: "id",
