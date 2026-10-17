@@ -9,8 +9,8 @@
    <link rel="preconnect" href="https://fonts.googleapis.com">
    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 --- a/public/assets/sections-render.mjs	2026-10-17 16:36:10.892145116 +0000
-+++ a/public/assets/sections-render.mjs	2026-10-17 16:36:27.109660090 +0000
-@@ -156,17 +156,29 @@
++++ a/public/assets/sections-render.mjs	2026-10-17 16:42:56.355728158 +0000
+@@ -156,26 +156,42 @@
      data.social?.youtubeUrl,
      data.social?.tiktokUrl,
    ].filter(Boolean);
@@ -24,6 +24,10 @@
 +  };
 +  const rawPhone = String(data.site?.phone || "").replace(/[\s.\-()]/g, "");
 +  const telephone = /^0\d{9}$/.test(rawPhone) ? `+33${rawPhone.slice(1)}` : data.site?.phone || undefined;
++  // addressLocality / postalCode sont déjà renseignés plus bas : on les retire de la rue.
++  const streetAddress = String(data.site?.address || "15 place Henri Boucher, 74890 Bons-en-Chablais")
++    .replace(/[,\s]*74890\s+Bons-en-Chablais\s*$/i, "")
++    .trim();
    return {
      "@context": "https://schema.org",
      "@type": "SportsActivityLocation",
@@ -42,8 +46,10 @@
 +    areaServed: ["Bons-en-Chablais", "Chablais", "Haute-Savoie"],
      address: {
        "@type": "PostalAddress",
-       streetAddress: data.site?.address || "15 place Henri Boucher, 74890 Bons-en-Chablais",
-@@ -175,7 +187,7 @@
+-      streetAddress: data.site?.address || "15 place Henri Boucher, 74890 Bons-en-Chablais",
++      streetAddress,
+       addressLocality: "Bons-en-Chablais",
+       postalCode: "74890",
        addressCountry: "FR",
      },
      sport: ["Full contact", "Boxe américaine", "Kick boxing"],
@@ -240,7 +246,7 @@
    },
  };
 --- a/test/site.test.mjs	2026-10-17 16:36:10.893981973 +0000
-+++ a/test/site.test.mjs	2026-10-17 16:37:40.060328656 +0000
++++ a/test/site.test.mjs	2026-10-17 16:42:56.356433486 +0000
 @@ -1,6 +1,6 @@
  import { describe, it, expect } from 'vitest';
  import { readFileSync } from 'node:fs';
@@ -258,7 +264,7 @@
  } from '../src/index.ts';
  
  const adminSource = readFileSync(new URL('../public/assets/admin.js', import.meta.url), 'utf8');
-@@ -701,3 +703,71 @@
+@@ -701,3 +703,81 @@
      expect(render([res(1)], { resourcesIntro: 'Mon intro' })).toContain('Mon intro');
    });
  });
@@ -319,6 +325,16 @@
 +    expect(ld.telephone).toBe('+33699958177');
 +    expect(ld['@id']).toBe(`${base}/#club`);
 +    expect(ld.sameAs).toBeUndefined();
++  });
++
++  it('ne répète pas code postal et ville dans streetAddress', () => {
++    const ld = buildJsonLd(
++      { site: { address: 'DOJO du Gymnase Intercommunal des Voirons, 146 Rue du Châtelard, 74890 Bons-en-Chablais' }, design: {}, meta: {}, social: {} },
++      base,
++    );
++    expect(ld.address.streetAddress).toBe('DOJO du Gymnase Intercommunal des Voirons, 146 Rue du Châtelard');
++    expect(ld.address.postalCode).toBe('74890');
++    expect(ld.address.addressLocality).toBe('Bons-en-Chablais');
 +  });
 +
 +  it('conserve les URL absolues et les réseaux sociaux renseignés', () => {

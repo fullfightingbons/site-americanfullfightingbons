@@ -762,6 +762,16 @@ describe('SEO — JSON-LD', () => {
     expect(ld.sameAs).toBeUndefined();
   });
 
+  it('ne répète pas code postal et ville dans streetAddress', () => {
+    const ld = buildJsonLd(
+      { site: { address: 'DOJO du Gymnase Intercommunal des Voirons, 146 Rue du Châtelard, 74890 Bons-en-Chablais' }, design: {}, meta: {}, social: {} },
+      base,
+    );
+    expect(ld.address.streetAddress).toBe('DOJO du Gymnase Intercommunal des Voirons, 146 Rue du Châtelard');
+    expect(ld.address.postalCode).toBe('74890');
+    expect(ld.address.addressLocality).toBe('Bons-en-Chablais');
+  });
+
   it('conserve les URL absolues et les réseaux sociaux renseignés', () => {
     const ld = buildJsonLd(
       { site: {}, design: { heroBackgroundImage: 'https://images.exemple.fr/hero.jpg' }, meta: {}, social: { facebookUrl: 'https://facebook.com/affbc' } },

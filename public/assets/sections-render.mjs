@@ -166,6 +166,10 @@ export function buildJsonLd(data, publicUrl) {
   };
   const rawPhone = String(data.site?.phone || "").replace(/[\s.\-()]/g, "");
   const telephone = /^0\d{9}$/.test(rawPhone) ? `+33${rawPhone.slice(1)}` : data.site?.phone || undefined;
+  // addressLocality / postalCode sont déjà renseignés plus bas : on les retire de la rue.
+  const streetAddress = String(data.site?.address || "15 place Henri Boucher, 74890 Bons-en-Chablais")
+    .replace(/[,\s]*74890\s+Bons-en-Chablais\s*$/i, "")
+    .trim();
   return {
     "@context": "https://schema.org",
     "@type": "SportsActivityLocation",
@@ -181,7 +185,7 @@ export function buildJsonLd(data, publicUrl) {
     areaServed: ["Bons-en-Chablais", "Chablais", "Haute-Savoie"],
     address: {
       "@type": "PostalAddress",
-      streetAddress: data.site?.address || "15 place Henri Boucher, 74890 Bons-en-Chablais",
+      streetAddress,
       addressLocality: "Bons-en-Chablais",
       postalCode: "74890",
       addressCountry: "FR",
