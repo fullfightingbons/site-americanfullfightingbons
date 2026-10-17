@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { renderSectionsHtml } from '../public/assets/sections-render.mjs';
+import { renderSectionsHtml, buildJsonLd } from '../public/assets/sections-render.mjs';
 import {
   checkLoginRateLimit,
   parseCookies,
@@ -17,6 +17,8 @@ import {
   mergePricing,
   normalizeGoogleReview,
   detectImageSignature,
+  googleFontsHref,
+  safeImageUrl,
 } from '../src/index.ts';
 
 const adminSource = readFileSync(new URL('../public/assets/admin.js', import.meta.url), 'utf8');
@@ -699,5 +701,73 @@ describe('section membre actif (tuiles compactes)', () => {
     expect(html).not.toContain('<i>x</i>');
     expect(html).toContain('&lt;i&gt;x&lt;/i&gt;');
     expect(render([res(1)], { resourcesIntro: 'Mon intro' })).toContain('Mon intro');
+  });
+});
+
+
+describe('SEO — polices Google Fonts du thème', () => {
+  it('ne charge que les familles utilisées (thème par défaut : Sora + Inter)', () => {
+    const href = googleFontsHref({
+      headingFont: "'Sora', sans-serif",
+      bodyFont: "'Inter', sans-serif",
+      navFont: "'Inter', sans-serif",
+      buttonFont: "'Inter', sans-serif",
+      cardTitleFont: "'Sora', sans-serif",
+      cardBodyFont: "'Inter', sans-serif",
+    });
+    expect(href).toContain('family=Sora:wght@500;600;700;800');
+    expect(href).toContain('family=Inter:wght@400;500;600;700;800');
+    expect(href).not.toContain('Montserrat');
+    expect(href).toMatch(/&display=swap$/);
+  });
+
+  it('suit le thème choisi dans l\'admin et ignore les familles inconnues', () => {
+    const href = googleFontsHref({ headingFont: "'Barlow Condensed', sans-serif", bodyFont: "'Comic Neue', cursive" });
+    expect(href).toContain('Barlow+Condensed:wght@500;600;700');
+    expect(href).not.toContain('Comic');
+    expect(googleFontsHref({ headingFont: 'Arial', bodyFont: '' })).toBeNull();
+    expect(googleFontsHref({})).toBeNull();
+  });
+});
+
+describe('SEO — safeImageUrl (préchargement hero)', () => {
+  it('accepte https et les chemins absolus', () => {
+    expect(safeImageUrl('https://images.unsplash.com/photo-1?auto=format&fit=crop&w=1800&q=80')).not.toBeNull();
+    expect(safeImageUrl('/api/images/hero.jpg')).toBe('/api/images/hero.jpg');
+  });
+
+  it('refuse les schémas dangereux et les caractères permettant une injection CSS/HTML', () => {
+    expect(safeImageUrl('javascript:alert(1)')).toBeNull();
+    expect(safeImageUrl('http://exemple.fr/a.jpg')).toBeNull();
+    expect(safeImageUrl('https://x.fr/a.jpg");background:red;("')).toBeNull();
+    expect(safeImageUrl('https://x.fr/a b.jpg')).toBeNull();
+    expect(safeImageUrl('https://x.fr/a.jpg"><script>')).toBeNull();
+    expect(safeImageUrl('')).toBeNull();
+    expect(safeImageUrl(undefined)).toBeNull();
+  });
+});
+
+describe('SEO — JSON-LD', () => {
+  const base = 'https://americanfullfightingbons.fr';
+
+  it('produit des URL absolues et un téléphone international', () => {
+    const ld = buildJsonLd(
+      { site: { name: 'AFFBC', phone: '06 99 95 81 77' }, design: { logoUrl: '/assets/logo-affbc.png' }, meta: {}, social: {} },
+      base,
+    );
+    expect(ld.logo).toBe(`${base}/assets/logo-affbc.png`);
+    expect(ld.image).toBe(`${base}/assets/logo-affbc.png`);
+    expect(ld.telephone).toBe('+33699958177');
+    expect(ld['@id']).toBe(`${base}/#club`);
+    expect(ld.sameAs).toBeUndefined();
+  });
+
+  it('conserve les URL absolues et les réseaux sociaux renseignés', () => {
+    const ld = buildJsonLd(
+      { site: {}, design: { heroBackgroundImage: 'https://images.exemple.fr/hero.jpg' }, meta: {}, social: { facebookUrl: 'https://facebook.com/affbc' } },
+      base,
+    );
+    expect(ld.image).toBe('https://images.exemple.fr/hero.jpg');
+    expect(ld.sameAs).toEqual(['https://facebook.com/affbc']);
   });
 });

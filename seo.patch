@@ -1,0 +1,332 @@
+--- a/public/admin/index.html	2026-10-17 16:36:10.890048778 +0000
++++ a/public/admin/index.html	2026-10-17 16:36:27.103384962 +0000
+@@ -3,6 +3,7 @@
+ <head>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1">
++  <meta name="robots" content="noindex, nofollow">
+   <title>AFFBC Admin Builder</title>
+   <link rel="preconnect" href="https://fonts.googleapis.com">
+   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+--- a/public/assets/sections-render.mjs	2026-10-17 16:36:10.892145116 +0000
++++ a/public/assets/sections-render.mjs	2026-10-17 16:36:27.109660090 +0000
+@@ -156,17 +156,29 @@
+     data.social?.youtubeUrl,
+     data.social?.tiktokUrl,
+   ].filter(Boolean);
++  // schema.org attend des URL absolues (logo/image) et un téléphone au format international.
++  const abs = (value) => {
++    try {
++      return new URL(String(value), publicUrl).href;
++    } catch {
++      return undefined;
++    }
++  };
++  const rawPhone = String(data.site?.phone || "").replace(/[\s.\-()]/g, "");
++  const telephone = /^0\d{9}$/.test(rawPhone) ? `+33${rawPhone.slice(1)}` : data.site?.phone || undefined;
+   return {
+     "@context": "https://schema.org",
+     "@type": "SportsActivityLocation",
++    "@id": `${publicUrl}/#club`,
+     name: data.site?.name || "American Full Fighting Bons en Chablais",
+     alternateName: data.site?.brandPrimary || "American Full Fighting",
+     url: publicUrl,
+-    logo: data.design?.logoUrl || `${publicUrl}/assets/logo-affbc.png`,
+-    image: data.design?.heroBackgroundImage || data.design?.logoUrl || `${publicUrl}/assets/logo-affbc.png`,
++    logo: abs(data.design?.logoUrl || "/assets/logo-affbc.png"),
++    image: abs(data.design?.heroBackgroundImage || data.design?.logoUrl || "/assets/logo-affbc.png"),
+     description: data.meta?.description || "",
+     email: data.site?.email || undefined,
+-    telephone: data.site?.phone || undefined,
++    telephone,
++    areaServed: ["Bons-en-Chablais", "Chablais", "Haute-Savoie"],
+     address: {
+       "@type": "PostalAddress",
+       streetAddress: data.site?.address || "15 place Henri Boucher, 74890 Bons-en-Chablais",
+@@ -175,7 +187,7 @@
+       addressCountry: "FR",
+     },
+     sport: ["Full contact", "Boxe américaine", "Kick boxing"],
+-    sameAs,
++    ...(sameAs.length ? { sameAs } : {}),
+   };
+ }
+ 
+--- a/public/assets/site.js	2026-10-17 16:36:10.892843245 +0000
++++ a/public/assets/site.js	2026-10-17 16:36:27.104535360 +0000
+@@ -152,7 +152,6 @@
+   setMetaContent('meta[name="keywords"]', data.meta?.keywords);
+   setMetaContent('meta[property="og:title"]', data.site?.name);
+   setMetaContent('meta[property="og:description"]', data.meta?.description);
+-  setMetaContent('meta[property="og:image"]', data.design?.logoUrl);
+   setMetaContent('meta[property="og:url"]', publicUrl);
+   setMetaContent('meta[name="twitter:title"]', data.site?.name);
+   setMetaContent('meta[name="twitter:description"]', data.meta?.description);
+--- a/public/index.html	2026-10-17 16:36:10.892937006 +0000
++++ a/public/index.html	2026-10-17 16:38:11.855859669 +0000
+@@ -4,7 +4,7 @@
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ 
+-  <title>American Full Fighting Bons en Chablais</title>
++  <title>American Full Fighting – Boxe américaine à Bons-en-Chablais</title>
+ 
+   <!-- Google Funding Choices (bandeau de consentement RGPD/CNIL) -->
+   <!-- Ce script doit être généré dans AdSense > Confidentialité et messages > créer un message RGPD.
+@@ -34,24 +34,31 @@
+      crossorigin="anonymous"></script>
+ 
+   <!-- SEO -->
+-  <meta name="description" content="American Full Fighting Bons en Chablais : club premium de full contact et boxe américaine. Entraînements, stages, inscriptions et informations pratiques.">
+-  <meta name="keywords" content="american full fighting, boxe américaine, full contact, Bons-en-Chablais">
++  <meta name="description" content="Club de boxe américaine, full contact et kick-boxing à Bons-en-Chablais (Haute-Savoie) : séances, tarifs, planning, stages et inscription en ligne.">
++  <meta name="keywords" content="american full fighting, boxe américaine, full contact, kick-boxing, Bons-en-Chablais, Chablais, Haute-Savoie">
++  <meta name="robots" content="index,follow,max-image-preview:large">
+   <meta name="theme-color" content="#07111d">
+   <meta property="og:type" content="website">
++  <meta property="og:site_name" content="American Full Fighting Bons en Chablais">
++  <meta property="og:locale" content="fr_FR">
+   <meta property="og:title" content="American Full Fighting Bons en Chablais">
+-  <meta property="og:description" content="Découvrez un club premium : entraînements, tarifs, planning et accès.">
+-  <meta property="og:image" content="/assets/logo-affbc.png">
++  <meta property="og:description" content="Boxe américaine, full contact et kick-boxing à Bons-en-Chablais : séances, tarifs, planning et accès.">
++  <meta property="og:image" content="https://americanfullfightingbons.fr/assets/og-affbc.png">
++  <meta property="og:image:width" content="1200">
++  <meta property="og:image:height" content="630">
++  <meta property="og:image:alt" content="Logo de l'American Full Fighting Bons en Chablais">
+   <meta property="og:url" content="https://americanfullfightingbons.fr">
+   <meta name="twitter:card" content="summary_large_image">
+   <meta name="twitter:title" content="American Full Fighting Bons en Chablais">
+-  <meta name="twitter:description" content="Club de full contact et boxe américaine à Bons-en-Chablais.">
++  <meta name="twitter:description" content="Club de boxe américaine, full contact et kick-boxing à Bons-en-Chablais.">
++  <meta name="twitter:image" content="https://americanfullfightingbons.fr/assets/og-affbc.png">
+   <link id="site-canonical" rel="canonical" href="https://americanfullfightingbons.fr">
+   <link id="site-favicon" rel="icon" href="/assets/logo-affbc.png">
+ 
+   <!-- Fonts -->
+   <link rel="preconnect" href="https://fonts.googleapis.com">
+   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+-  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&family=Montserrat:wght@500;600;700;800&family=Outfit:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
++  <link id="site-fonts" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap" rel="stylesheet">
+ 
+   <!-- Styles -->
+   <link rel="stylesheet" href="/assets/site.css">
+@@ -66,7 +73,7 @@
+ 
+       <!-- Logo -->
+       <a class="brand premium-brand" href="#top" aria-label="Retour en haut">
+-        <img id="brand-logo" src="/assets/logo-affbc.png" alt="Logo AFFBC" class="brand-logo" decoding="async" fetchpriority="high">
++        <img id="brand-logo" src="/assets/logo-affbc.png" alt="Logo AFFBC" class="brand-logo" width="478" height="522" decoding="async" fetchpriority="high">
+         <div class="brand-text">
+           <div id="brand-primary" class="brand-name">AMERICAN FULL FIGHTING</div>
+           <div id="brand-secondary" class="brand-sub">BONS EN CHABLAIS</div>
+--- a/public/mentions-legales.html	2026-10-17 16:36:10.893007808 +0000
++++ a/public/mentions-legales.html	2026-10-17 16:36:27.103676857 +0000
+@@ -4,6 +4,7 @@
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width,initial-scale=1">
+ <meta name="robots" content="index,follow">
++<meta name="description" content="Mentions légales du site de l'American Full Fighting Bons en Chablais : éditeur, hébergement, données personnelles et cookies.">
+ <title>Mentions légales — American Full Fighting Bons en Chablais</title>
+ <link rel="icon" href="/assets/logo-affbc.png">
+ <style>
+--- a/public/robots.txt	2026-10-17 16:36:10.893060213 +0000
++++ a/public/robots.txt	2026-10-17 16:36:27.102491531 +0000
+@@ -1,4 +1,5 @@
+ User-agent: *
+ Allow: /
++Disallow: /api/
+ 
+ Sitemap: https://americanfullfightingbons.fr/sitemap.xml
+--- a/src/index.ts	2026-10-17 16:36:10.893169056 +0000
++++ a/src/index.ts	2026-10-17 16:37:40.059733987 +0000
+@@ -1607,6 +1607,8 @@
+   mergePricing,
+   normalizeGoogleReview,
+   detectImageSignature,
++  googleFontsHref,
++  safeImageUrl,
+ };
+ 
+ /**
+@@ -1750,6 +1752,44 @@
+   }
+ }
+ 
++/**
++ * Polices Google Fonts réellement nécessaires au thème courant. index.html
++ * chargeait auparavant 8 familles (≈ 35 graisses) quel que soit le thème
++ * choisi dans l'admin : une feuille de style bloquante bien trop lourde pour
++ * le LCP. On ne demande plus que les familles utilisées (par défaut Sora + Inter).
++ */
++const GOOGLE_FONT_SPECS: Record<string, string> = {
++  archivo: "Archivo:wght@400;500;600;700;800",
++  "barlow condensed": "Barlow+Condensed:wght@500;600;700",
++  inter: "Inter:wght@400;500;600;700;800",
++  manrope: "Manrope:wght@400;500;600;700;800",
++  montserrat: "Montserrat:wght@500;600;700;800",
++  outfit: "Outfit:wght@400;500;600;700;800",
++  sora: "Sora:wght@500;600;700;800",
++  "space grotesk": "Space+Grotesk:wght@500;700",
++};
++
++function googleFontsHref(design: Row): string | null {
++  const keys = ["headingFont", "bodyFont", "navFont", "buttonFont", "cardTitleFont", "cardBodyFont"];
++  const specs = new Set<string>();
++  for (const key of keys) {
++    const family = String(design[key] || "").split(",")[0].replace(/['"]/g, "").trim().toLowerCase();
++    if (GOOGLE_FONT_SPECS[family]) specs.add(GOOGLE_FONT_SPECS[family]);
++  }
++  if (!specs.size) return null;
++  return `https://fonts.googleapis.com/css2?${[...specs].map((spec) => `family=${spec}`).join("&")}&display=swap`;
++}
++
++/**
++ * URL d'image utilisable sans risque dans un attribut style / une balise
++ * <link> injectés côté serveur : https ou chemin absolu, sans guillemet,
++ * parenthèse, point-virgule ni espace.
++ */
++function safeImageUrl(value: unknown): string | null {
++  const v = String(value ?? "").trim();
++  return /^(https:\/\/|\/)[^\s"'()\\;{}<>]+$/i.test(v) ? v : null;
++}
++
+ async function renderHomepage(request: Request, env: Env): Promise<Response> {
+   const [data, base] = await Promise.all([
+     getBootstrap(env),
+@@ -1766,6 +1806,8 @@
+   const meta = (data.meta || {}) as Row;
+   const labels = (data.labels || {}) as Row;
+   const utilityLinks = (hero.utilityLinks as Row[]) || [];
++  const heroImage = safeImageUrl(design.heroBackgroundImage);
++  const heroImageAttr = heroImage ? heroImage.replace(/&/g, "&amp;") : "";
+ 
+   const rewriter = new HTMLRewriter()
+     .on("title", new SetText(String(site.browserTitle || site.name || "American Full Fighting Bons en Chablais")))
+@@ -1773,12 +1815,20 @@
+     .on('meta[name="keywords"]', new SetAttr("content", meta.keywords as string))
+     .on('meta[property="og:title"]', new SetAttr("content", site.name as string))
+     .on('meta[property="og:description"]', new SetAttr("content", meta.description as string))
+-    .on('meta[property="og:image"]', new SetAttr("content", design.logoUrl as string))
+     .on('meta[property="og:url"]', new SetAttr("content", publicUrl))
+     .on('meta[name="twitter:title"]', new SetAttr("content", site.name as string))
+     .on('meta[name="twitter:description"]', new SetAttr("content", meta.description as string))
+     .on("#site-canonical", new SetAttr("href", publicUrl))
+     .on("#site-favicon", new SetAttr("href", design.faviconUrl as string))
++    .on("#site-fonts", new SetAttr("href", googleFontsHref(design)))
++    .on("html", new SetAttr("style", heroImage ? `--hero-background-image:url("${heroImage}")` : null))
++    .on("head", {
++      element(el) {
++        if (heroImageAttr) {
++          el.append(`<link rel="preload" as="image" href="${heroImageAttr}" fetchpriority="high">`, { html: true });
++        }
++      },
++    })
+     .on("#site-jsonld", new SetText(JSON.stringify(buildJsonLd(data, publicUrl), null, 2)))
+     .on("#brand-logo", new SetAttr("src", design.logoUrl as string))
+     .on("#brand-primary", new SetText(site.brandPrimary as string))
+@@ -1841,6 +1891,12 @@
+     } else {
+       response = await env.ASSETS.fetch(request);
+     }
+-    return withSecurityHeaders(response);
++    const secured = withSecurityHeaders(response);
++    const isPrivatePath =
++      url.pathname === "/admin" ||
++      url.pathname.startsWith("/admin/") ||
++      (url.pathname.startsWith("/api/") && !url.pathname.startsWith("/api/images/"));
++    if (isPrivatePath) secured.headers.set("X-Robots-Tag", "noindex, nofollow");
++    return secured;
+   },
+ };
+--- a/test/site.test.mjs	2026-10-17 16:36:10.893981973 +0000
++++ a/test/site.test.mjs	2026-10-17 16:37:40.060328656 +0000
+@@ -1,6 +1,6 @@
+ import { describe, it, expect } from 'vitest';
+ import { readFileSync } from 'node:fs';
+-import { renderSectionsHtml } from '../public/assets/sections-render.mjs';
++import { renderSectionsHtml, buildJsonLd } from '../public/assets/sections-render.mjs';
+ import {
+   checkLoginRateLimit,
+   parseCookies,
+@@ -17,6 +17,8 @@
+   mergePricing,
+   normalizeGoogleReview,
+   detectImageSignature,
++  googleFontsHref,
++  safeImageUrl,
+ } from '../src/index.ts';
+ 
+ const adminSource = readFileSync(new URL('../public/assets/admin.js', import.meta.url), 'utf8');
+@@ -701,3 +703,71 @@
+     expect(render([res(1)], { resourcesIntro: 'Mon intro' })).toContain('Mon intro');
+   });
+ });
++
++
++describe('SEO — polices Google Fonts du thème', () => {
++  it('ne charge que les familles utilisées (thème par défaut : Sora + Inter)', () => {
++    const href = googleFontsHref({
++      headingFont: "'Sora', sans-serif",
++      bodyFont: "'Inter', sans-serif",
++      navFont: "'Inter', sans-serif",
++      buttonFont: "'Inter', sans-serif",
++      cardTitleFont: "'Sora', sans-serif",
++      cardBodyFont: "'Inter', sans-serif",
++    });
++    expect(href).toContain('family=Sora:wght@500;600;700;800');
++    expect(href).toContain('family=Inter:wght@400;500;600;700;800');
++    expect(href).not.toContain('Montserrat');
++    expect(href).toMatch(/&display=swap$/);
++  });
++
++  it('suit le thème choisi dans l\'admin et ignore les familles inconnues', () => {
++    const href = googleFontsHref({ headingFont: "'Barlow Condensed', sans-serif", bodyFont: "'Comic Neue', cursive" });
++    expect(href).toContain('Barlow+Condensed:wght@500;600;700');
++    expect(href).not.toContain('Comic');
++    expect(googleFontsHref({ headingFont: 'Arial', bodyFont: '' })).toBeNull();
++    expect(googleFontsHref({})).toBeNull();
++  });
++});
++
++describe('SEO — safeImageUrl (préchargement hero)', () => {
++  it('accepte https et les chemins absolus', () => {
++    expect(safeImageUrl('https://images.unsplash.com/photo-1?auto=format&fit=crop&w=1800&q=80')).not.toBeNull();
++    expect(safeImageUrl('/api/images/hero.jpg')).toBe('/api/images/hero.jpg');
++  });
++
++  it('refuse les schémas dangereux et les caractères permettant une injection CSS/HTML', () => {
++    expect(safeImageUrl('javascript:alert(1)')).toBeNull();
++    expect(safeImageUrl('http://exemple.fr/a.jpg')).toBeNull();
++    expect(safeImageUrl('https://x.fr/a.jpg");background:red;("')).toBeNull();
++    expect(safeImageUrl('https://x.fr/a b.jpg')).toBeNull();
++    expect(safeImageUrl('https://x.fr/a.jpg"><script>')).toBeNull();
++    expect(safeImageUrl('')).toBeNull();
++    expect(safeImageUrl(undefined)).toBeNull();
++  });
++});
++
++describe('SEO — JSON-LD', () => {
++  const base = 'https://americanfullfightingbons.fr';
++
++  it('produit des URL absolues et un téléphone international', () => {
++    const ld = buildJsonLd(
++      { site: { name: 'AFFBC', phone: '06 99 95 81 77' }, design: { logoUrl: '/assets/logo-affbc.png' }, meta: {}, social: {} },
++      base,
++    );
++    expect(ld.logo).toBe(`${base}/assets/logo-affbc.png`);
++    expect(ld.image).toBe(`${base}/assets/logo-affbc.png`);
++    expect(ld.telephone).toBe('+33699958177');
++    expect(ld['@id']).toBe(`${base}/#club`);
++    expect(ld.sameAs).toBeUndefined();
++  });
++
++  it('conserve les URL absolues et les réseaux sociaux renseignés', () => {
++    const ld = buildJsonLd(
++      { site: {}, design: { heroBackgroundImage: 'https://images.exemple.fr/hero.jpg' }, meta: {}, social: { facebookUrl: 'https://facebook.com/affbc' } },
++      base,
++    );
++    expect(ld.image).toBe('https://images.exemple.fr/hero.jpg');
++    expect(ld.sameAs).toEqual(['https://facebook.com/affbc']);
++  });
++});

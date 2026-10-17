@@ -156,17 +156,29 @@ export function buildJsonLd(data, publicUrl) {
     data.social?.youtubeUrl,
     data.social?.tiktokUrl,
   ].filter(Boolean);
+  // schema.org attend des URL absolues (logo/image) et un téléphone au format international.
+  const abs = (value) => {
+    try {
+      return new URL(String(value), publicUrl).href;
+    } catch {
+      return undefined;
+    }
+  };
+  const rawPhone = String(data.site?.phone || "").replace(/[\s.\-()]/g, "");
+  const telephone = /^0\d{9}$/.test(rawPhone) ? `+33${rawPhone.slice(1)}` : data.site?.phone || undefined;
   return {
     "@context": "https://schema.org",
     "@type": "SportsActivityLocation",
+    "@id": `${publicUrl}/#club`,
     name: data.site?.name || "American Full Fighting Bons en Chablais",
     alternateName: data.site?.brandPrimary || "American Full Fighting",
     url: publicUrl,
-    logo: data.design?.logoUrl || `${publicUrl}/assets/logo-affbc.png`,
-    image: data.design?.heroBackgroundImage || data.design?.logoUrl || `${publicUrl}/assets/logo-affbc.png`,
+    logo: abs(data.design?.logoUrl || "/assets/logo-affbc.png"),
+    image: abs(data.design?.heroBackgroundImage || data.design?.logoUrl || "/assets/logo-affbc.png"),
     description: data.meta?.description || "",
     email: data.site?.email || undefined,
-    telephone: data.site?.phone || undefined,
+    telephone,
+    areaServed: ["Bons-en-Chablais", "Chablais", "Haute-Savoie"],
     address: {
       "@type": "PostalAddress",
       streetAddress: data.site?.address || "15 place Henri Boucher, 74890 Bons-en-Chablais",
@@ -175,7 +187,7 @@ export function buildJsonLd(data, publicUrl) {
       addressCountry: "FR",
     },
     sport: ["Full contact", "Boxe américaine", "Kick boxing"],
-    sameAs,
+    ...(sameAs.length ? { sameAs } : {}),
   };
 }
 

@@ -1607,6 +1607,8 @@ export {
   mergePricing,
   normalizeGoogleReview,
   detectImageSignature,
+  googleFontsHref,
+  safeImageUrl,
 };
 
 /**
@@ -1750,6 +1752,44 @@ async function fetchUpcomingEvents(): Promise<CalendrierEvent[]> {
   }
 }
 
+/**
+ * Polices Google Fonts réellement nécessaires au thème courant. index.html
+ * chargeait auparavant 8 familles (≈ 35 graisses) quel que soit le thème
+ * choisi dans l'admin : une feuille de style bloquante bien trop lourde pour
+ * le LCP. On ne demande plus que les familles utilisées (par défaut Sora + Inter).
+ */
+const GOOGLE_FONT_SPECS: Record<string, string> = {
+  archivo: "Archivo:wght@400;500;600;700;800",
+  "barlow condensed": "Barlow+Condensed:wght@500;600;700",
+  inter: "Inter:wght@400;500;600;700;800",
+  manrope: "Manrope:wght@400;500;600;700;800",
+  montserrat: "Montserrat:wght@500;600;700;800",
+  outfit: "Outfit:wght@400;500;600;700;800",
+  sora: "Sora:wght@500;600;700;800",
+  "space grotesk": "Space+Grotesk:wght@500;700",
+};
+
+function googleFontsHref(design: Row): string | null {
+  const keys = ["headingFont", "bodyFont", "navFont", "buttonFont", "cardTitleFont", "cardBodyFont"];
+  const specs = new Set<string>();
+  for (const key of keys) {
+    const family = String(design[key] || "").split(",")[0].replace(/['"]/g, "").trim().toLowerCase();
+    if (GOOGLE_FONT_SPECS[family]) specs.add(GOOGLE_FONT_SPECS[family]);
+  }
+  if (!specs.size) return null;
+  return `https://fonts.googleapis.com/css2?${[...specs].map((spec) => `family=${spec}`).join("&")}&display=swap`;
+}
+
+/**
+ * URL d'image utilisable sans risque dans un attribut style / une balise
+ * <link> injectés côté serveur : https ou chemin absolu, sans guillemet,
+ * parenthèse, point-virgule ni espace.
+ */
+function safeImageUrl(value: unknown): string | null {
+  const v = String(value ?? "").trim();
+  return /^(https:\/\/|\/)[^\s"'()\\;{}<>]+$/i.test(v) ? v : null;
+}
+
 async function renderHomepage(request: Request, env: Env): Promise<Response> {
   const [data, base] = await Promise.all([
     getBootstrap(env),
@@ -1766,6 +1806,8 @@ async function renderHomepage(request: Request, env: Env): Promise<Response> {
   const meta = (data.meta || {}) as Row;
   const labels = (data.labels || {}) as Row;
   const utilityLinks = (hero.utilityLinks as Row[]) || [];
+  const heroImage = safeImageUrl(design.heroBackgroundImage);
+  const heroImageAttr = heroImage ? heroImage.replace(/&/g, "&amp;") : "";
 
   const rewriter = new HTMLRewriter()
     .on("title", new SetText(String(site.browserTitle || site.name || "American Full Fighting Bons en Chablais")))
@@ -1773,12 +1815,20 @@ async function renderHomepage(request: Request, env: Env): Promise<Response> {
     .on('meta[name="keywords"]', new SetAttr("content", meta.keywords as string))
     .on('meta[property="og:title"]', new SetAttr("content", site.name as string))
     .on('meta[property="og:description"]', new SetAttr("content", meta.description as string))
-    .on('meta[property="og:image"]', new SetAttr("content", design.logoUrl as string))
     .on('meta[property="og:url"]', new SetAttr("content", publicUrl))
     .on('meta[name="twitter:title"]', new SetAttr("content", site.name as string))
     .on('meta[name="twitter:description"]', new SetAttr("content", meta.description as string))
     .on("#site-canonical", new SetAttr("href", publicUrl))
     .on("#site-favicon", new SetAttr("href", design.faviconUrl as string))
+    .on("#site-fonts", new SetAttr("href", googleFontsHref(design)))
+    .on("html", new SetAttr("style", heroImage ? `--hero-background-image:url("${heroImage}")` : null))
+    .on("head", {
+      element(el) {
+        if (heroImageAttr) {
+          el.append(`<link rel="preload" as="image" href="${heroImageAttr}" fetchpriority="high">`, { html: true });
+        }
+      },
+    })
     .on("#site-jsonld", new SetText(JSON.stringify(buildJsonLd(data, publicUrl), null, 2)))
     .on("#brand-logo", new SetAttr("src", design.logoUrl as string))
     .on("#brand-primary", new SetText(site.brandPrimary as string))
@@ -1841,6 +1891,12 @@ export default {
     } else {
       response = await env.ASSETS.fetch(request);
     }
-    return withSecurityHeaders(response);
+    const secured = withSecurityHeaders(response);
+    const isPrivatePath =
+      url.pathname === "/admin" ||
+      url.pathname.startsWith("/admin/") ||
+      (url.pathname.startsWith("/api/") && !url.pathname.startsWith("/api/images/"));
+    if (isPrivatePath) secured.headers.set("X-Robots-Tag", "noindex, nofollow");
+    return secured;
   },
 };

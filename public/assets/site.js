@@ -152,7 +152,6 @@ function applyMeta(data) {
   setMetaContent('meta[name="keywords"]', data.meta?.keywords);
   setMetaContent('meta[property="og:title"]', data.site?.name);
   setMetaContent('meta[property="og:description"]', data.meta?.description);
-  setMetaContent('meta[property="og:image"]', data.design?.logoUrl);
   setMetaContent('meta[property="og:url"]', publicUrl);
   setMetaContent('meta[name="twitter:title"]', data.site?.name);
   setMetaContent('meta[name="twitter:description"]', data.meta?.description);
